@@ -1,0 +1,25 @@
+<resources>
+    <string name="app_name">VacantCourt</string>
+    <string name="select_tennis_complex_title">Select Complex to Configure</string>
+    <string name="no_complexes_to_configure">No tennis complexes currently require configuration.</string>
+    <string name="configure_selected_courts_button">SAVE CONFIGURATION</string>
+    <string name="view_live_feed">View Live Feed</string>
+    <string name="edit_configuration">Edit Configuration</string>
+    <string name="all_courts_configured_in_complex_short">All courts configured</string>
+    <string name="error_parsing_complex_data_live">Error: Could not parse complex data.</string>
+    <string name="complex_not_found_live">Error: Tennis complex not found.</string>
+    <string name="error_fetching_config_live">Error fetching configuration: %s</string>
+    <string name="no_courts_configured_for_viewing_live">No courts are configured for this complex. Please configure first.</string>
+    <string name="error_loading_model_live">Error loading detection model: %s</string>
+    <string name="camera_binding_failed_live">Camera binding failed: %s</string>
+    <string name="permissions_not_granted_live">Permissions not granted by the user.</string>
+    <string name="no_tennis_complexes_found">No tennis complexes found.</string>
+    <string name="error_parsing_complex_data">Error parsing complex data from server.</string>
+    <string name="error_fetching_data">Error fetching data: %s</string>
+    <string name="configure_courts_activity_title">Configure Courts</string>
+    <string name="all_courts_configured_in_complex">All courts in this complex are already configured.</string>
+    <string name="unconfigured_courts_count">%d individual court(s) need configuration</string>
+    <string name="all_courts_configured">All courts configured</string>
+    <string name="view_complex_live_feed">View complex live feed</string>
+    <string name="edit_court_configuration">Edit court configuration</string>
+</resources>
