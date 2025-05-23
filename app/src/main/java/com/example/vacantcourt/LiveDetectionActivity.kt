@@ -60,7 +60,7 @@ class LiveDetectionActivity : ComponentActivity() {
     private var preview: Preview? = null
 
     private var complexId: String? = null
-    private var configuredCourtRegions: List<Pair<String, List<PointData>>> = emptyList()
+    private var normalizedCourtPolygons: List<Pair<String, List<PointData>>> = emptyList()
     private val db = Firebase.firestore
     private val TENNIS_COMPLEXES_COLLECTION_LIVE = "Courts"
 
@@ -82,6 +82,13 @@ class LiveDetectionActivity : ComponentActivity() {
     private var processingEnabled = true
 
     private lateinit var textViewComplexNameTitleLive: TextView
+
+    private val courtStatusMap: MutableMap<String, String> = mutableMapOf()
+    private val courtPendingFirebaseUpdate: MutableSet<String> = mutableSetOf()
+
+    private var lastInferenceTimestamp: Long = 0L
+    private var INFERENCE_INTERVAL_MS = 3000L
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,9 +143,7 @@ class LiveDetectionActivity : ComponentActivity() {
 
     private fun applyWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
             textViewComplexNameTitleLive.updateLayoutParams<ViewGroup.MarginLayoutParams> {}
-
             WindowInsetsCompat.CONSUMED
         }
     }
@@ -151,23 +156,30 @@ class LiveDetectionActivity : ComponentActivity() {
                     if (!processingEnabled || isDestroyed || isFinishing) return@addOnSuccessListener
                     if (document.exists()) {
                         val complex = document.toObject(TennisComplexData::class.java)
-                        complex?.let {
-                            if (textViewComplexNameTitleLive.text == getString(R.string.configure_courts_activity_title) && it.name.isNotEmpty()) {
-                                textViewComplexNameTitleLive.text = it.name
+                        complex?.let { loadedComplex ->
+                            if (textViewComplexNameTitleLive.text == getString(R.string.configure_courts_activity_title) && loadedComplex.name.isNotEmpty()) {
+                                textViewComplexNameTitleLive.text = loadedComplex.name
                             }
-                            configuredCourtRegions = it.courts.filter { court ->
+                            courtStatusMap.clear()
+                            courtPendingFirebaseUpdate.clear()
+                            loadedComplex.courts.forEach { court ->
+                                courtStatusMap[court.name] = court.status
+                            }
+
+                            normalizedCourtPolygons = loadedComplex.courts.filter { court ->
                                 court.isConfigured && court.regionPoints != null && court.regionPoints!!.isNotEmpty()
                             }.map { configuredCourt ->
                                 Pair(configuredCourt.name, configuredCourt.regionPoints!!)
                             }
-                            if (configuredCourtRegions.isEmpty()) {
+                            if (normalizedCourtPolygons.isEmpty()) {
                                 Toast.makeText(this, getString(R.string.no_courts_configured_for_viewing_live), Toast.LENGTH_LONG).show()
                                 finish()
                                 return@addOnSuccessListener
                             }
-                            Log.d(TAG, "Loaded ${configuredCourtRegions.size} configured regions.")
+                            Log.d(TAG, "Loaded ${normalizedCourtPolygons.size} configured regions. Initial statuses: $courtStatusMap")
                             setupYoloInterpreter()
                             startCameraWhenReady()
+                            lastInferenceTimestamp = 0L // Reset for immediate first inference
 
                         } ?: run {
                             showErrorAndFinish(getString(R.string.error_parsing_complex_data_live))
@@ -312,12 +324,12 @@ class LiveDetectionActivity : ComponentActivity() {
             )
             Log.d(TAG, "Camera use cases bound.")
             if (processingEnabled && !isDestroyed && !isFinishing) {
-                binding.overlayView.setConfiguredRegions(configuredCourtRegions, previewViewWidth, previewViewHeight)
+                binding.overlayView.setConfiguredRegions(normalizedCourtPolygons, previewViewWidth, previewViewHeight)
             }
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
             if (processingEnabled && !isDestroyed && !isFinishing) {
-                Toast.makeText(this, "Use case binding failed: ${exc.localizedMessage}", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Use case binding failed: ${exc.localizedMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -333,7 +345,16 @@ class LiveDetectionActivity : ComponentActivity() {
 
     private inner class YoloImageAnalyzer : ImageAnalysis.Analyzer {
         override fun analyze(imageProxy: ImageProxy) {
-            if (!processingEnabled || tfliteInterpreter == null || labels.isEmpty() || modelInputWidth == 0) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastInferenceTimestamp < INFERENCE_INTERVAL_MS) {
+                imageProxy.close()
+                return
+            }
+            lastInferenceTimestamp = currentTime
+            Log.d(TAG, "Performing inference. Time since last: ${currentTime - (lastInferenceTimestamp - INFERENCE_INTERVAL_MS)} ms")
+
+
+            if (!processingEnabled || tfliteInterpreter == null || labels.isEmpty() || modelInputWidth == 0 || normalizedCourtPolygons.isEmpty()) {
                 imageProxy.close()
                 return
             }
@@ -385,12 +406,14 @@ class LiveDetectionActivity : ComponentActivity() {
                     currentInterpreterInstance!!.run(inputBuffer, outputBuffer.buffer.rewind())
                 }
 
-                val results = processYoloOutput(outputBuffer, uprightBitmapForOverlay.width, uprightBitmapForOverlay.height)
+                val detectionResults = processYoloOutput(outputBuffer, uprightBitmapForOverlay.width, uprightBitmapForOverlay.height)
+                updateCourtStatusesBasedOnLastInference(detectionResults, uprightBitmapForOverlay.width, uprightBitmapForOverlay.height)
+
 
                 runOnUiThread {
                     if (!processingEnabled || isDestroyed || isFinishing) return@runOnUiThread
                     binding.overlayView.setResults(
-                        results,
+                        detectionResults,
                         uprightBitmapForOverlay.height,
                         uprightBitmapForOverlay.width
                     )
@@ -403,6 +426,167 @@ class LiveDetectionActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun isPointInPolygon(point: PointF, polygon: List<PointF>): Boolean {
+        if (polygon.size < 3) return false
+        var crossings = 0
+        for (i in polygon.indices) {
+            val p1 = polygon[i]
+            val p2 = polygon[(i + 1) % polygon.size]
+
+            if (((p1.y <= point.y && point.y < p2.y) || (p2.y <= point.y && point.y < p1.y)) &&
+                (point.x < (p2.x - p1.x) * (point.y - p1.y) / (p2.y - p1.y) + p1.x)
+            ) {
+                crossings++
+            }
+        }
+        return crossings % 2 == 1
+    }
+
+    private fun checkOverlap(personRect: RectF, courtPolygonAbsolute: List<PointF>): Boolean {
+        if (courtPolygonAbsolute.isEmpty()) return false
+
+        val personPoints = listOf(
+            PointF(personRect.left, personRect.top),
+            PointF(personRect.right, personRect.top),
+            PointF(personRect.right, personRect.bottom),
+            PointF(personRect.left, personRect.bottom)
+        )
+
+        for (personPoint in personPoints) {
+            if (isPointInPolygon(personPoint, courtPolygonAbsolute)) return true
+        }
+
+        for (courtPoint in courtPolygonAbsolute) {
+            if (personRect.contains(courtPoint.x, courtPoint.y)) return true
+        }
+
+        val personPath = Path().apply {
+            moveTo(personRect.left, personRect.top)
+            lineTo(personRect.right, personRect.top)
+            lineTo(personRect.right, personRect.bottom)
+            lineTo(personRect.left, personRect.bottom)
+            close()
+        }
+        val courtPath = Path().apply {
+            if (courtPolygonAbsolute.isNotEmpty()) {
+                moveTo(courtPolygonAbsolute[0].x, courtPolygonAbsolute[0].y)
+                for (i in 1 until courtPolygonAbsolute.size) {
+                    lineTo(courtPolygonAbsolute[i].x, courtPolygonAbsolute[i].y)
+                }
+                close()
+            }
+        }
+
+        val regionPerson = Region()
+        regionPerson.setPath(personPath, Region(0,0, Int.MAX_VALUE, Int.MAX_VALUE))
+        val regionCourt = Region()
+        regionCourt.setPath(courtPath, Region(0,0, Int.MAX_VALUE, Int.MAX_VALUE))
+
+        return regionPerson.op(regionCourt, Region.Op.INTERSECT)
+    }
+
+
+    private fun updateCourtStatusesBasedOnLastInference(
+        detectionResults: List<DetectionResult>,
+        imageWidth: Int,
+        imageHeight: Int
+    ) {
+        if (imageWidth == 0 || imageHeight == 0 || complexId == null) return
+
+        val personDetections = detectionResults.filter { it.className.equals("person", ignoreCase = true) }
+
+        for ((courtName, normalizedPolygonPoints) in normalizedCourtPolygons) {
+            if (courtPendingFirebaseUpdate.contains(courtName)) {
+                Log.d(TAG, "Skipping status update for '$courtName', Firebase update pending.")
+                continue
+            }
+
+            val absolutePolygonPoints = normalizedPolygonPoints.map {
+                PointF(it.x * imageWidth, it.y * imageHeight)
+            }
+
+            var isCourtOccupiedThisInference = false
+            if (personDetections.isNotEmpty()) {
+                for (personDetection in personDetections) {
+                    if (checkOverlap(personDetection.boundingBox, absolutePolygonPoints)) {
+                        isCourtOccupiedThisInference = true
+                        break
+                    }
+                }
+            }
+
+            val currentLocalStatus = courtStatusMap[courtName] ?: "available"
+            val newStatus = if (isCourtOccupiedThisInference) "in-use" else "available"
+
+            if (currentLocalStatus != newStatus) {
+                Log.d(TAG, "Court '$courtName' status changed. Current local: '$currentLocalStatus', New based on inference: '$newStatus'. Attempting update.")
+                attemptFirebaseUpdate(courtName, newStatus)
+            } else {
+                Log.v(TAG, "Court '$courtName' status ('$currentLocalStatus') consistent with inference. No change needed.")
+            }
+        }
+    }
+
+    private fun attemptFirebaseUpdate(courtName: String, newStatus: String) {
+        if (courtPendingFirebaseUpdate.contains(courtName)) {
+            Log.d(TAG, "Update for '$courtName' already pending. Skipping.")
+            return
+        }
+        val currentLocalStatus = courtStatusMap[courtName]
+        if (currentLocalStatus == newStatus) {
+            Log.d(TAG, "Court '$courtName' local status already '$newStatus'. No Firebase update needed.")
+            return
+        }
+
+        courtPendingFirebaseUpdate.add(courtName)
+        Log.d(TAG, "Attempting Firebase update for '$courtName' to '$newStatus'. currentLocalStatus: $currentLocalStatus")
+
+        val complexDocRef = complexId?.let { db.collection(TENNIS_COMPLEXES_COLLECTION_LIVE).document(it) }
+            ?: run {
+                Log.e(TAG, "Complex ID is null, cannot update status for $courtName")
+                courtPendingFirebaseUpdate.remove(courtName)
+                return
+            }
+
+        db.runTransaction { transaction ->
+            val snapshot = transaction.get(complexDocRef)
+            val currentComplexData = snapshot.toObject(TennisComplexData::class.java)
+            var changedInTransaction = false
+
+            currentComplexData?.let { complexData ->
+                val courtIndex = complexData.courts.indexOfFirst { it.name == courtName }
+                if (courtIndex != -1) {
+                    val courtToUpdate = complexData.courts[courtIndex]
+                    if (courtToUpdate.status != newStatus) {
+                        val updatedCourt = courtToUpdate.copy(status = newStatus, lastUpdatedStatus = System.currentTimeMillis())
+                        val mutableCourts = complexData.courts.toMutableList()
+                        mutableCourts[courtIndex] = updatedCourt
+                        transaction.update(complexDocRef, "courts", mutableCourts.toList())
+                        changedInTransaction = true
+                        Log.i(TAG, "Firebase: Transaction will update court '$courtName' from '${courtToUpdate.status}' to '$newStatus'.")
+                    } else {
+                        Log.d(TAG, "Firebase: Court '$courtName' status in DB already '$newStatus' during transaction read. No DB write needed.")
+                    }
+                } else {
+                    Log.e(TAG, "Court '$courtName' not found in complex data during transaction.")
+                }
+            } ?: Log.e(TAG, "Complex data not found in transaction for $complexId")
+            changedInTransaction
+        }.addOnSuccessListener { changedInDb ->
+            Log.d(TAG, "Transaction for '$courtName' to '$newStatus' success. Changed in DB: $changedInDb")
+            runOnUiThread {
+                courtStatusMap[courtName] = newStatus
+                courtPendingFirebaseUpdate.remove(courtName)
+            }
+        }.addOnFailureListener { e ->
+            Log.e(TAG, "Transaction for '$courtName' to '$newStatus' FAILED: $e")
+            runOnUiThread {
+                courtPendingFirebaseUpdate.remove(courtName)
+            }
+        }
+    }
+
 
     private fun processYoloOutput(outputBuffer: TensorBuffer, imageToScaleCoordsToWidth: Int, imageToScaleCoordsToHeight: Int): List<DetectionResult> {
         val outputArray = outputBuffer.floatArray

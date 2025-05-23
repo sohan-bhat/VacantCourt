@@ -82,6 +82,7 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
         private const val INITIAL_REGION_HEIGHT_RATIO = 0.3f
         private const val LABEL_TEXT_PADDING_HORIZONTAL = 10f
         private const val LABEL_TEXT_PADDING_VERTICAL = 5f
+        private const val MIN_SEGMENT_LENGTH = 20f // Minimum distance between vertices
     }
 
     init {
@@ -115,7 +116,7 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
         }
     }
 
-    fun startDrawingRegion(courtName: String) {
+    fun startDrawingRegion(courtName: String, existingPoints: List<PointF>? = null) {
         Log.d(TAG_OVERLAY, "startDrawingRegion for '$courtName'. Source: $sourceWidth x $sourceHeight")
         activeCourtName?.let { oldName ->
             activePolygonPoints?.let {
@@ -126,11 +127,17 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
         }
 
         val existingPlacedRegion = placedRegions.find { it.courtName == courtName }
-        if (existingPlacedRegion != null) {
+        if (existingPlacedRegion != null && existingPoints == null) { // Prioritize passed existingPoints
             activeCourtName = courtName
             activePolygonPoints = existingPlacedRegion.points.map { PointF(it.x, it.y) }.toMutableList()
             placedRegions.remove(existingPlacedRegion)
-            Log.d(TAG_OVERLAY, "Reactivated existing region for $courtName with ${activePolygonPoints?.size} points.")
+            Log.d(TAG_OVERLAY, "Reactivated existing region (from placed) for $courtName with ${activePolygonPoints?.size} points.")
+        } else if (existingPoints != null) {
+            activeCourtName = courtName
+            activePolygonPoints = existingPoints.map { PointF(it.x, it.y) }.toMutableList()
+            // If it was already in placedRegions, remove it so we're editing the "active" one
+            placedRegions.removeAll { it.courtName == courtName }
+            Log.d(TAG_OVERLAY, "Reactivated existing region (from argument) for $courtName with ${activePolygonPoints?.size} points.")
         } else {
             if (sourceWidth <= 0 || sourceHeight <= 0) {
                 Log.e(TAG_OVERLAY, "Cannot start new region '$courtName', source dimensions are invalid: $sourceWidth x $sourceHeight.")
@@ -186,6 +193,28 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
             }
         }
     }
+
+    fun finalizeActiveRegion() {
+        activeCourtName?.let { name ->
+            activePolygonPoints?.let { points ->
+                if (points.isNotEmpty()) {
+                    val existingIndex = placedRegions.indexOfFirst { it.courtName == name }
+                    if (existingIndex != -1) {
+                        placedRegions[existingIndex].points = points.map { PointF(it.x, it.y) }.toMutableList()
+                    } else {
+                        placedRegions.add(PlacedRegion(name, points.map { PointF(it.x, it.y) }.toMutableList()))
+                    }
+                    Log.d(TAG_OVERLAY, "Finalized active region (general) '$name' with ${points.size} points.")
+                }
+            }
+        }
+        activeCourtName = null
+        activePolygonPoints = null
+        currentDragMode = DragMode.NONE
+        draggedVertexIndex = -1
+        invalidate()
+    }
+
 
     fun getPlacedRegions(): List<PlacedRegion> {
         val allRegions = mutableListOf<PlacedRegion>()
@@ -266,8 +295,16 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
                             DragMode.VERTEX -> {
                                 if (draggedVertexIndex != -1 && draggedVertexIndex < currentPoints.size) {
                                     val vertex = currentPoints[draggedVertexIndex]
-                                    vertex.x = (vertex.x + dx).coerceIn(0f, sourceWidth.toFloat())
-                                    vertex.y = (vertex.y + dy).coerceIn(0f, sourceHeight.toFloat())
+                                    val newX = (vertex.x + dx).coerceIn(0f, sourceWidth.toFloat())
+                                    val newY = (vertex.y + dy).coerceIn(0f, sourceHeight.toFloat())
+
+                                    val tempPoints = currentPoints.toMutableList()
+                                    tempPoints[draggedVertexIndex] = PointF(newX, newY)
+
+                                    if (!isPolygonSelfIntersecting(tempPoints)) {
+                                        vertex.x = newX
+                                        vertex.y = newY
+                                    }
                                 }
                             }
                             DragMode.POLYGON_BODY -> {
@@ -281,12 +318,15 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
                                         canMoveY = false
                                     }
                                 }
-                                currentPoints.forEach { point ->
-                                    if (canMoveX) point.x += dx
-                                    if (canMoveY) point.y += dy
-
-                                    point.x = point.x.coerceIn(0f, sourceWidth.toFloat())
-                                    point.y = point.y.coerceIn(0f, sourceHeight.toFloat())
+                                if (canMoveX || canMoveY) {
+                                    val tempPoints = currentPoints.map { p ->
+                                        PointF(
+                                            if (canMoveX) (p.x + dx).coerceIn(0f, sourceWidth.toFloat()) else p.x,
+                                            if (canMoveY) (p.y + dy).coerceIn(0f, sourceHeight.toFloat()) else p.y
+                                        )
+                                    }.toMutableList()
+                                    currentPoints.clear()
+                                    currentPoints.addAll(tempPoints)
                                 }
                             }
                             DragMode.NONE -> {}
@@ -313,6 +353,60 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
         draggedVertexIndex = -1
         return super.onTouchEvent(event)
     }
+
+    private fun isPolygonSelfIntersecting(points: List<PointF>): Boolean {
+        if (points.size < 4) return false // A triangle cannot self-intersect in 2D
+
+        for (i in points.indices) {
+            val p1 = points[i]
+            val p2 = points[(i + 1) % points.size]
+
+            for (j in i + 2 until points.size) {
+                // Skip adjacent segments and the segment connecting the last to the first if i is 0 and j is size-1
+                if ((j + 1) % points.size == i) continue
+
+                val p3 = points[j]
+                val p4 = points[(j + 1) % points.size]
+
+                if (segmentsIntersect(p1, p2, p3, p4)) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private fun segmentsIntersect(p1: PointF, p2: PointF, p3: PointF, p4: PointF): Boolean {
+        fun orientation(a: PointF, b: PointF, c: PointF): Int {
+            val value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y)
+            if (value == 0f) return 0 // Collinear
+            return if (value > 0) 1 else 2 // Clockwise or Counterclockwise
+        }
+
+        fun onSegment(p: PointF, q: PointF, r: PointF): Boolean {
+            return (q.x <= max(p.x, r.x) && q.x >= min(p.x, r.x) &&
+                    q.y <= max(p.y, r.y) && q.y >= min(p.y, r.y))
+        }
+
+        val o1 = orientation(p1, p2, p3)
+        val o2 = orientation(p1, p2, p4)
+        val o3 = orientation(p3, p4, p1)
+        val o4 = orientation(p3, p4, p2)
+
+        if (o1 != o2 && o3 != o4) {
+            // Check if intersection point is one of the vertices (touching, not crossing)
+            if (p1 == p3 || p1 == p4 || p2 == p3 || p2 == p4) return false
+            return true
+        }
+
+        if (o1 == 0 && onSegment(p1, p3, p2)) return true
+        if (o2 == 0 && onSegment(p1, p4, p2)) return true
+        if (o3 == 0 && onSegment(p3, p1, p4)) return true
+        if (o4 == 0 && onSegment(p3, p2, p4)) return true
+
+        return false
+    }
+
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -395,7 +489,7 @@ class RegionDrawingOverlayView @JvmOverloads constructor(
 
         points.forEachIndexed { index, point ->
             if (currentDragMode == DragMode.VERTEX && index == draggedVertexIndex) {
-                canvas.drawCircle(point.x, point.y, visualHandleRadius + dpToPx(1f), activeHandlePaint) // Slightly larger active handle
+                canvas.drawCircle(point.x, point.y, visualHandleRadius + dpToPx(1f), activeHandlePaint)
             } else {
                 canvas.drawCircle(point.x, point.y, visualHandleRadius, handlePaint)
             }

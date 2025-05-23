@@ -6,6 +6,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.PointF
 import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
@@ -53,6 +54,8 @@ class CourtConfigurationActivity : AppCompatActivity() {
     private lateinit var buttonConfigureDoneFab: FloatingActionButton
     private lateinit var progressBar: ProgressBar
     private lateinit var textViewComplexNameTitleConfig: TextView
+    private lateinit var textViewAllConfiguredMessage: TextView
+
 
     private lateinit var cameraExecutor: ExecutorService
     private var cameraProvider: ProcessCameraProvider? = null
@@ -63,7 +66,7 @@ class CourtConfigurationActivity : AppCompatActivity() {
     private var complexId: String? = null
     private var complexNameFromIntent: String? = null
     private var currentTennisComplex: TennisComplexData? = null
-    private var unconfiguredCourts: List<IndividualCourtData> = emptyList()
+
 
     private val db = Firebase.firestore
     private val TAG = "CourtConfigActivity"
@@ -109,6 +112,8 @@ class CourtConfigurationActivity : AppCompatActivity() {
         buttonConfigureDoneFab = findViewById(R.id.buttonConfigureDoneFab)
         progressBar = findViewById(R.id.progressBarConfig)
         textViewComplexNameTitleConfig = findViewById(R.id.textViewComplexNameTitleConfig)
+        textViewAllConfiguredMessage = findViewById(R.id.textViewAllConfiguredMessage)
+
 
         applyWindowInsets()
 
@@ -165,6 +170,12 @@ class CourtConfigurationActivity : AppCompatActivity() {
                 topMargin = insets.top + resources.getDimensionPixelSize(R.dimen.default_margin)
                 leftMargin = insets.left + resources.getDimensionPixelSize(R.dimen.default_left_margin)
             }
+            textViewAllConfiguredMessage.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                topMargin = insets.top + resources.getDimensionPixelSize(R.dimen.default_margin)
+                leftMargin = (textViewComplexNameTitleConfig.right + resources.getDimensionPixelSize(R.dimen.default_margin)).toInt()
+
+            }
+
 
             courtButtonsScrollView.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 leftMargin = insets.left + resources.getDimensionPixelSize(R.dimen.default_left_margin)
@@ -189,13 +200,12 @@ class CourtConfigurationActivity : AppCompatActivity() {
                 if (document.exists()) {
                     currentTennisComplex = document.toObject(TennisComplexData::class.java)?.copy(id = document.id)
                     currentTennisComplex?.let {
-                        unconfiguredCourts = it.courts.filter { court -> !court.isConfigured }
                         if (complexNameFromIntent.isNullOrEmpty() && it.name.isNotEmpty()) {
                             textViewComplexNameTitleConfig.text = it.name
                         } else {
                             textViewComplexNameTitleConfig.text = complexNameFromIntent ?: it.name
                         }
-                        setupUnconfiguredCourtButtons()
+                        setupCourtButtons()
                     } ?: run {
                         showError("Failed to parse complex data after fetch.")
                     }
@@ -209,31 +219,28 @@ class CourtConfigurationActivity : AppCompatActivity() {
             }
     }
 
-    private fun setupUnconfiguredCourtButtons() {
+    private fun setupCourtButtons() {
         unconfiguredCourtsButtonsContainer.removeAllViews()
-        if (unconfiguredCourts.isEmpty()) {
-            TextView(this).apply {
-                text = getString(R.string.all_courts_configured_in_complex)
-                setTextColor(Color.WHITE)
-                setBackgroundColor(Color.parseColor("#80000000"))
-                val padding = (8 * resources.displayMetrics.density).toInt()
-                setPadding(padding, padding, padding, padding)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-            }.also { unconfiguredCourtsButtonsContainer.addView(it) }
+        val courts = currentTennisComplex?.courts ?: emptyList()
+
+        if (courts.isEmpty()) {
+            textViewAllConfiguredMessage.text = getString(R.string.no_courts_configured_for_viewing_live)
+            textViewAllConfiguredMessage.visibility = View.VISIBLE
             buttonConfigureDoneFab.hide()
             return
         }
 
         buttonConfigureDoneFab.show()
+        var allConfigured = true
 
-        for (courtData in unconfiguredCourts) {
+        for (courtData in courts) {
+            if (!courtData.isConfigured) {
+                allConfigured = false
+            }
             val button = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 text = courtData.name
-                tag = courtData.name
-                isCheckable = true
+                tag = courtData // Store the whole courtData object
+                isCheckable = true // We'll manage selection state visually
                 minHeight = 0
                 minimumHeight = 0
                 val lrPadding = (16 * resources.displayMetrics.density).toInt()
@@ -241,15 +248,24 @@ class CourtConfigurationActivity : AppCompatActivity() {
                 setPadding(lrPadding, tbPadding, lrPadding, tbPadding)
                 textSize = 13f
                 cornerRadius = (20 * resources.displayMetrics.density).toInt()
-                setTextColor(colorForInactiveButtonText)
-                strokeColor = ColorStateList.valueOf(colorForInactiveButtonStroke)
+
+                if (courtData.isConfigured) {
+                    setTextColor(Color.GREEN)
+                    strokeColor = ColorStateList.valueOf(Color.GREEN)
+                    setIconResource(R.drawable.ic_check)
+                } else {
+                    setTextColor(colorForInactiveButtonText)
+                    strokeColor = ColorStateList.valueOf(colorForInactiveButtonStroke)
+                    setIconResource(0)
+                }
+
                 strokeWidth = resources.getDimensionPixelSize(R.dimen.default_button_stroke_width)
                 rippleColor = ColorStateList.valueOf(colorPrimaryActive)
                 setBackgroundColor(Color.parseColor("#66333333"))
                 typeface = Typeface.DEFAULT
                 iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
                 iconPadding = (6 * resources.displayMetrics.density).toInt()
-                setIconResource(0)
+
                 val params = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -258,75 +274,95 @@ class CourtConfigurationActivity : AppCompatActivity() {
                 params.setMargins(marginInPixels, 0, marginInPixels, 0)
                 layoutParams = params
                 setOnClickListener {
-                    onCourtButtonClicked(this, courtData, colorPrimaryActive, colorForInactiveButtonText, colorForInactiveButtonStroke)
+                    onCourtButtonClicked(this, courtData)
                 }
             }
             unconfiguredCourtsButtonsContainer.addView(button)
         }
+
+        if (allConfigured) {
+            textViewAllConfiguredMessage.text = getString(R.string.all_courts_configured_edit_mode)
+            textViewAllConfiguredMessage.visibility = View.VISIBLE
+        } else {
+            textViewAllConfiguredMessage.visibility = View.GONE
+        }
     }
 
+
     private fun onCourtButtonClicked(
-        button: MaterialButton,
-        court: IndividualCourtData,
-        activePrimaryColor: Int,
-        inactiveTextColor: Int,
-        inactiveStrokeColor: Int
+        clickedButton: MaterialButton,
+        court: IndividualCourtData
     ) {
         if (previewView.display == null || previewView.width <= 0 || previewView.height <= 0) {
             Toast.makeText(this, "Camera preview not fully initialized. Please wait.", Toast.LENGTH_SHORT).show()
-            Log.w(TAG, "onCourtButtonClicked: Preview not ready (display null or zero dimensions).")
+            Log.w(TAG, "onCourtButtonClicked: Preview not ready.")
             return
         }
         regionDrawingOverlayView.setSourceDimensions(previewView.width, previewView.height)
 
-        val isCurrentlySelected = currentlySelectedCourtButton == button
+        val isNewSelection = currentlySelectedCourtButton != clickedButton
 
-        currentlySelectedCourtButton?.let { prevButton ->
-            if (prevButton != button) {
-                prevButton.isChecked = false
-                prevButton.strokeWidth = resources.getDimensionPixelSize(R.dimen.default_button_stroke_width)
-                prevButton.setTextColor(inactiveTextColor)
-                prevButton.strokeColor = ColorStateList.valueOf(inactiveStrokeColor)
-                prevButton.setBackgroundColor(Color.parseColor("#66333333"))
-                prevButton.setIconResource(0)
-                prevButton.typeface = Typeface.DEFAULT
-                val prevCourtName = prevButton.tag as? String
-                if (prevCourtName != null) {
-                    regionDrawingOverlayView.finalizeActiveRegionByName(prevCourtName)
-                }
+        currentlySelectedCourtButton?.let { previousButton ->
+            val previousCourtData = previousButton.tag as? IndividualCourtData
+            previousButton.strokeWidth = resources.getDimensionPixelSize(R.dimen.default_button_stroke_width)
+            if (previousCourtData?.isConfigured == true) {
+                previousButton.setTextColor(Color.GREEN)
+                previousButton.strokeColor = ColorStateList.valueOf(Color.GREEN)
+                previousButton.setIconResource(R.drawable.ic_check)
+            } else {
+                previousButton.setTextColor(colorForInactiveButtonText)
+                previousButton.strokeColor = ColorStateList.valueOf(colorForInactiveButtonStroke)
+                previousButton.setIconResource(0)
+            }
+            previousButton.setBackgroundColor(Color.parseColor("#66333333")) // Reset background
+            previousButton.typeface = Typeface.DEFAULT
+
+            if (previousCourtData != null) {
+                regionDrawingOverlayView.finalizeActiveRegionByName(previousCourtData.name)
             }
         }
 
-        if (isCurrentlySelected) {
-            regionDrawingOverlayView.removeRegion(court.name)
-            button.isChecked = false
-            button.strokeWidth = resources.getDimensionPixelSize(R.dimen.default_button_stroke_width)
-            button.setTextColor(inactiveTextColor)
-            button.strokeColor = ColorStateList.valueOf(inactiveStrokeColor)
-            button.setBackgroundColor(Color.parseColor("#66333333"))
-            button.setIconResource(0)
-            button.typeface = Typeface.DEFAULT
-            currentlySelectedCourtButton = null
+        if (isNewSelection) {
+            regionDrawingOverlayView.startDrawingRegion(
+                court.name,
+                if (court.isConfigured && court.regionPoints != null) {
+                    court.regionPoints!!.map { PointF(it.x * previewView.width, it.y * previewView.height) }
+                } else {
+                    null
+                }
+            )
+            clickedButton.strokeWidth = resources.getDimensionPixelSize(R.dimen.active_button_stroke_width)
+            clickedButton.setTextColor(colorPrimaryActive)
+            clickedButton.strokeColor = ColorStateList.valueOf(colorPrimaryActive)
+            val activeBgColor = Color.argb(70, Color.red(colorPrimaryActive), Color.green(colorPrimaryActive), Color.blue(colorPrimaryActive))
+            clickedButton.setBackgroundColor(activeBgColor)
+            clickedButton.setIconResource(R.drawable.ic_draw_active)
+            clickedButton.typeface = Typeface.DEFAULT_BOLD
+            currentlySelectedCourtButton = clickedButton
         } else {
-            regionDrawingOverlayView.startDrawingRegion(court.name)
-            button.isChecked = true
-            button.strokeWidth = resources.getDimensionPixelSize(R.dimen.active_button_stroke_width)
-            button.setTextColor(activePrimaryColor)
-            button.strokeColor = ColorStateList.valueOf(activePrimaryColor)
-            val activeBgColor = Color.argb(70, Color.red(activePrimaryColor), Color.green(activePrimaryColor), Color.blue(activePrimaryColor))
-            button.setBackgroundColor(activeBgColor)
-            button.setIconResource(R.drawable.ic_draw_active)
-            button.typeface = Typeface.DEFAULT_BOLD
-            currentlySelectedCourtButton = button
+            regionDrawingOverlayView.removeRegion(court.name) // Deselecting
+            currentlySelectedCourtButton = null
         }
     }
 
+
     private fun configureSelectedCourts() {
+        currentlySelectedCourtButton?.let {
+            val courtData = it.tag as? IndividualCourtData
+            courtData?.let { cd -> regionDrawingOverlayView.finalizeActiveRegionByName(cd.name) }
+        }
+
         val placedRegions = regionDrawingOverlayView.getPlacedRegions()
+        if (placedRegions.isEmpty() && currentTennisComplex?.courts?.all { it.isConfigured } == true) {
+            Toast.makeText(this, "No changes made to existing configurations.", Toast.LENGTH_LONG).show()
+            return
+        }
         if (placedRegions.isEmpty()) {
             Toast.makeText(this, "No courts have been configured on screen.", Toast.LENGTH_LONG).show()
             return
         }
+
+
         progressBar.visibility = View.VISIBLE
         val batch = db.batch()
         var courtsToUpdateCount = 0
@@ -361,7 +397,7 @@ class CourtConfigurationActivity : AppCompatActivity() {
         batch.commit()
             .addOnSuccessListener {
                 progressBar.visibility = View.GONE
-                Toast.makeText(this, "$courtsToUpdateCount court(s) configured successfully!", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "$courtsToUpdateCount court(s) configured/updated successfully!", Toast.LENGTH_LONG).show()
                 finish()
             }
             .addOnFailureListener { e ->
@@ -511,6 +547,11 @@ class CourtConfigurationActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         Log.d(TAG, "onPause called. Unbinding all camera use cases.")
+        regionDrawingOverlayView.finalizeActiveRegion()
+        currentlySelectedCourtButton?.let {
+            val courtData = it.tag as? IndividualCourtData
+            courtData?.let { cd -> regionDrawingOverlayView.finalizeActiveRegionByName(cd.name)}
+        }
         cameraProvider?.unbindAll()
     }
 

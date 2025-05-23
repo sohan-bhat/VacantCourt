@@ -15,9 +15,10 @@ data class IndividualCourtData(
     var isConfigured: Boolean = false,
     var status: String = "available",
     val surface: String = "",
-    var regionPoints: List<PointData>? = null
+    var regionPoints: List<PointData>? = null,
+    val lastUpdatedStatus: Long
 ) {
-    constructor() : this("", false, "available", "", null)
+    constructor() : this(lastUpdatedStatus = System.currentTimeMillis())
 }
 
 data class TennisComplexData(
