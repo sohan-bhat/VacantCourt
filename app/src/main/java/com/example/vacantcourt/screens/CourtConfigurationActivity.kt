@@ -239,8 +239,8 @@ class CourtConfigurationActivity : AppCompatActivity() {
             }
             val button = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 text = courtData.name
-                tag = courtData // Store the whole courtData object
-                isCheckable = true // We'll manage selection state visually
+                tag = courtData
+                isCheckable = true
                 minHeight = 0
                 minimumHeight = 0
                 val lrPadding = (16 * resources.displayMetrics.density).toInt()
@@ -252,7 +252,6 @@ class CourtConfigurationActivity : AppCompatActivity() {
                 if (courtData.isConfigured) {
                     setTextColor(Color.GREEN)
                     strokeColor = ColorStateList.valueOf(Color.GREEN)
-                    setIconResource(R.drawable.ic_check)
                 } else {
                     setTextColor(colorForInactiveButtonText)
                     strokeColor = ColorStateList.valueOf(colorForInactiveButtonStroke)
@@ -308,13 +307,12 @@ class CourtConfigurationActivity : AppCompatActivity() {
             if (previousCourtData?.isConfigured == true) {
                 previousButton.setTextColor(Color.GREEN)
                 previousButton.strokeColor = ColorStateList.valueOf(Color.GREEN)
-                previousButton.setIconResource(R.drawable.ic_check)
             } else {
                 previousButton.setTextColor(colorForInactiveButtonText)
                 previousButton.strokeColor = ColorStateList.valueOf(colorForInactiveButtonStroke)
                 previousButton.setIconResource(0)
             }
-            previousButton.setBackgroundColor(Color.parseColor("#66333333")) // Reset background
+            previousButton.setBackgroundColor(Color.parseColor("#66333333"))
             previousButton.typeface = Typeface.DEFAULT
 
             if (previousCourtData != null) {
@@ -336,11 +334,10 @@ class CourtConfigurationActivity : AppCompatActivity() {
             clickedButton.strokeColor = ColorStateList.valueOf(colorPrimaryActive)
             val activeBgColor = Color.argb(70, Color.red(colorPrimaryActive), Color.green(colorPrimaryActive), Color.blue(colorPrimaryActive))
             clickedButton.setBackgroundColor(activeBgColor)
-            clickedButton.setIconResource(R.drawable.ic_draw_active)
             clickedButton.typeface = Typeface.DEFAULT_BOLD
             currentlySelectedCourtButton = clickedButton
         } else {
-            regionDrawingOverlayView.removeRegion(court.name) // Deselecting
+            regionDrawingOverlayView.removeRegion(court.name)
             currentlySelectedCourtButton = null
         }
     }
