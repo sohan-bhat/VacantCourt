@@ -12,7 +12,12 @@
           "package_name": "com.example.vacantcourt"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "972859766680-i6j3viinm53l4h17ua3nscmqjst8c98g.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDNlhCDEdQtJeAOMhp4UfXUGlOD_MCtPfA"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "972859766680-i6j3viinm53l4h17ua3nscmqjst8c98g.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
