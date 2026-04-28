@@ -2,7 +2,7 @@
 
 A real-time court occupancy system that uses on-device computer vision to detect whether tennis and basketball courts are in use, and surfaces availability through a web app and interactive map.
 
-**Live demo:** https://vacantcourt.netlify.app
+**Live demo:** https://vacantcourt.com
 
 This repo contains the web frontend. The Android detector that powers the live status feed lives at [VacantCourtApp](https://github.com/sohan-bhat/VacantCourtApp).
 
@@ -16,13 +16,21 @@ The system has three parts:
 
 ## Screenshots
 
-| List view | Map view |
-|---|---|
-| ![List view](public/assets/dashboard.png) | ![Map view](public/assets/mapview.png) |
+**List view**
 
-| Court details (desktop) | Court details (mobile) |
-|---|---|
-| ![Desktop](public/assets/courtdetails.png) | <img src="public/assets/mobile.png" width="200" /> |
+<img src="public/assets/dashboard.png" width="800" />
+
+**Map view**
+
+<img src="public/assets/mapview.png" width="800" />
+
+**Court details (desktop)**
+
+<img src="public/assets/courtdetails.png" width="800" />
+
+**Court details (mobile)**
+
+<img src="public/assets/mobile.png" width="300" />
 
 ## Tech stack
 
@@ -36,3 +44,32 @@ The system has three parts:
 Requires Node 16+ and a Firebase project (free tier works).
 
 ```bash
+git clone https://github.com/sohan-bhat/VacantCourt.git
+cd VacantCourt
+npm install
+```
+
+Create `.env.local` with your Firebase and Google Maps keys (see `.env.example`):
+
+```env
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_GOOGLE_MAPS_API_KEY=...
+```
+
+Then:
+
+```bash
+npm run dev
+```
+
+## Status and known limitations
+
+- Detector is a working proof-of-concept; not currently deployed at a physical court.
+- Court status can also be set manually for courts without a detector installed.
+- Tested on Android 11+ with rear camera; performance varies with lighting and camera angle.
+
+## License
+
+MIT
