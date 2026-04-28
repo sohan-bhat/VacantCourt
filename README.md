@@ -2,7 +2,7 @@
 
 A real-time court occupancy system that uses on-device computer vision to detect whether tennis and basketball courts are in use, and surfaces availability through a web app and interactive map.
 
-**Live demo:** https://vacantcourt.com
+**Live demo:** https://vacantcourt.netlify.app
 
 This repo contains the web frontend. The Android detector that powers the live status feed lives at [VacantCourtApp](https://github.com/sohan-bhat/VacantCourtApp).
 
@@ -16,21 +16,13 @@ The system has three parts:
 
 ## Screenshots
 
-**List view**
+| List view | Map view |
+|---|---|
+| <img src="public/assets/dashboard.png" width="500" /> | <img src="public/assets/mapview.png" width="500" /> |
 
-<img src="public/assets/dashboard.png" width="800" />
-
-**Map view**
-
-<img src="public/assets/mapview.png" width="800" />
-
-**Court details (desktop)**
-
-<img src="public/assets/courtdetails.png" width="800" />
-
-**Court details (mobile)**
-
-<img src="public/assets/mobile.png" width="300" />
+| Court details (desktop) | Court details (mobile) |
+|---|---|
+| <img src="public/assets/courtdetails.png" width="500" /> | <img src="public/assets/mobile.png" width="220" /> |
 
 ## Tech stack
 
