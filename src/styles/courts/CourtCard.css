@@ -5,99 +5,29 @@
 }
 
 .court-card {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: var(--bg-paper);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
-    transition: transform 0.3s, box-shadow 0.3s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .court-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
 .court-card-skeleton {
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: var(--bg-paper);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
     overflow: hidden;
-    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .court-info {
-    padding: 15px;
-}
-
-.court-info h3 {
-    margin: 0 0 10px 0;
-    color: #1e3a8a;
-}
-
-.court-type {
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.court-location {
-    font-size: 0.9rem;
-    margin-bottom: 15px;
-}
-
-.availability-indicator {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.availability-status {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: bold;
-}
-
-.availability-status.available {
-    background-color: #d1e7dd;
-    color: #0f5132;
-}
-
-.availability-status.unavailable {
-    background-color: #f8d7da;
-    color: #842029;
-}
-
-.availability-status.unconfigured {
-    background-color: #dfe0e0;
-    color: #4f5256;
-  }
-
-.court-count {
-    font-size: 0.9rem;
-    color: #6c757d;
-}
-
-.court-actions {
-    display: flex;
-    border-top: 1px solid #eee;
-}
-
-.view-details {
-    flex: 1;
-    padding: 12px;
-    margin: 0;
-    text-align: center;
-    background-color: #f8f9fa;
-    color: #1e3a8a;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.3s;
-}
-
-.view-details:hover {
-    background-color: #e9ecef;
+    padding: 16px;
 }
 
 .notify-courtname {

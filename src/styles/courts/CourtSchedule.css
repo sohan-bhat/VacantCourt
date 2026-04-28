@@ -1,95 +1,77 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Rubik', Tahoma, Geneva, Verdana, sans-serif;
-}
-
 .courts-list {
     display: grid;
-    gap: 15px;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
 .court-item {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    border-left: 5px solid transparent;
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-}
-
-.court-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-}
-
-.court-item-info h4 {
-    margin-top: 0;
-    margin-bottom: 8px;
-    color: #333;
-    font-size: 1.1rem;
-}
-
-.court-surface {
-    font-size: 0.85rem;
-    color: #666;
-    margin-bottom: 10px;
-}
-
-.court-status-text {
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 4px;
-    display: inline-block;
-    font-size: 0.9rem;
-}
-
-.court-next-available {
-    font-size: 0.8rem;
-    color: #555;
-    margin-top: 8px;
+    background-color: var(--bg-paper);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--border-radius);
+    padding: 14px 16px;
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-left-color: rgba(0, 0, 0, 0.1);
 }
 
 .court-item.available {
-    border-left-color: #28a745;
-}
-.court-status-text.available {
-    background-color: #d1e7dd;
-    color: #0f5132;
+    border-left-color: var(--success-color);
 }
 
 .court-item.in-use {
-    border-left-color: #dc3545;
-}
-.court-status-text.in-use {
-    background-color: #f8d7da;
-    color: #dc3545;
+    border-left-color: var(--error-color);
 }
 
 .court-item.maintenance {
-    border-left-color: #ffc107;
-}
-.court-status-text.maintenance {
-    background-color: #fff8e1;
-    color: #b98700;
+    border-left-color: var(--warning-color);
 }
 
 .court-item.not-configured {
-    border-left-color: #fd7e14;
-}
-.court-status-text.not-configured {
-    background-color: #fff3e0;
-    color: #e65100;
+    border-left-color: #9ca3af;
 }
 
 .court-item.unknown {
-    border-left-color: #6c757d;
+    border-left-color: var(--text-secondary);
 }
-.court-status-text.unknown {
-    background-color: #f8f9fa;
-    color: #6c757d;
+
+.court-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: var(--border-radius);
+    background-color: rgba(0, 0, 0, 0.04);
+    color: var(--text-secondary);
+}
+
+.court-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: currentColor;
+    flex-shrink: 0;
+}
+
+.court-status-pill.available {
+    background-color: rgba(46, 139, 88, 0.1);
+    color: var(--success-color);
+}
+
+.court-status-pill.in-use {
+    background-color: rgba(191, 63, 77, 0.1);
+    color: var(--error-color);
+}
+
+.court-status-pill.maintenance {
+    background-color: rgba(212, 153, 32, 0.1);
+    color: var(--warning-color);
+}
+
+.court-status-pill.not-configured {
+    background-color: rgba(156, 163, 175, 0.15);
+    color: #6b7280;
 }
 
 @media (max-width: 600px) {

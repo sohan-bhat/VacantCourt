@@ -1,3 +1,4 @@
+import { Typography, Box } from '@mui/material';
 import '../../styles/courts/CourtSchedule.css';
 
 interface SubCourtForSchedule {
@@ -44,13 +45,18 @@ function CourtSchedule({ courts }: CourtScheduleProps) {
 
                 return (
                     <div key={key} className={`court-item ${statusClassName}`}>
-                        <div className="court-item-info">
-                            <h4>{court.name}</h4>
-                            {court.surface ? <p style={{fontFamily: 'Rubik'}}className="court-surface">{court.surface} court</p> : null}
-                            <p style={{fontFamily: 'Rubik'}}className={`court-status-text ${statusClassName}`}>
-                                {displayStatusText}
-                            </p>
-                        </div>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                            {court.name}
+                        </Typography>
+                        {court.surface && (
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+                                {court.surface}
+                            </Typography>
+                        )}
+                        <Box className={`court-status-pill ${statusClassName}`}>
+                            <span className="court-status-dot" />
+                            {displayStatusText}
+                        </Box>
                     </div>
                 );
             })}

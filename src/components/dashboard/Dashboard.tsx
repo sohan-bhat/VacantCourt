@@ -257,7 +257,6 @@ function Dashboard() {
                             <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mr: 1 }}>
                                 {isMobile ? null : <LocationOn color="success" sx={{ fontSize: '1.1rem' }} />}
                                 <Typography
-                                    fontFamily={["Rubik"]}
                                     variant="body2"
                                     sx={{
                                         whiteSpace: 'nowrap',
@@ -274,7 +273,7 @@ function Dashboard() {
                             mr: { xs: 0, sm: 1 },
                             ml: { xs: 1, sm: 0 },
                             border: `1px solid ${isLocationFilteringEnabled ? theme.palette.success.light : theme.palette.grey[300]}`,
-                            borderRadius: theme.shape.borderRadius,
+                            borderRadius: 1,
                             py: 0.5,
                             px: 1,
                             bgcolor: isLocationFilteringEnabled ? theme.palette.success.light + '1A' : theme.palette.grey[100],
@@ -339,7 +338,9 @@ function Dashboard() {
             />
             <div className="dashboard">
                 <div className="dashboard-header">
-                    <h2>Find Available Courts Near You!</h2>
+                    <Typography variant="h5" component="h2" color="primary.dark" sx={{ fontWeight: 700 }}>
+                        Find Available Courts Near You!
+                    </Typography>
                     <div className="dashboard-header-controls">
                         <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
                         {getGeolocationControlUI()}
@@ -380,14 +381,14 @@ function Dashboard() {
                     fullScreen={isMobile}
                     PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2 } }}
                 >
-                    <DialogTitle sx={{ bgcolor: '#1e3a8a', color: 'white', py: 2 }}>
+                    <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', py: 2 }}>
                         Find Courts Near You
                     </DialogTitle>
                     <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: '15px !important', sm: '20px !important' } }}>
-                        <Typography fontFamily={"Rubik"} variant="body1" sx={{ mb: 2 }}>
+                        <Typography variant="body1" sx={{ mb: 2 }}>
                             Allow access to your location to see the closest courts first.
                         </Typography>
-                        <Typography fontFamily={"Rubik"} variant="body2" color="text.secondary">
+                        <Typography variant="body2" color="text.secondary">
                             This will allow us to sort available courts by their proximity to you, putting the closest options first. Your location data is used only for this purpose and is not stored on our servers.
                         </Typography>
                     </DialogContent>
@@ -396,8 +397,8 @@ function Dashboard() {
                             onClick={handleDenyLocation}
                             variant="outlined"
                             sx={{
-                                mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: '#1e3a8a', color: '#1e3a8a',
-                                '&:hover': { borderColor: '#1e3a8a', bgcolor: 'rgba(30, 58, 138, 0.04)' }
+                                mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: 'primary.main', color: 'primary.main',
+                                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(30, 58, 138, 0.04)' }
                             }}
                         >
                             No Thanks
@@ -406,8 +407,8 @@ function Dashboard() {
                             onClick={handleAllowLocation}
                             variant="contained"
                             sx={{
-                                px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: '#28a745',
-                                '&:hover': { bgcolor: '#228d3c' }
+                                px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: 'success.main',
+                                '&:hover': { bgcolor: 'success.dark' }
                             }}
                         >
                             Allow Location

@@ -25,10 +25,10 @@ const Page404: React.FC = () => {
             >
                 <Container maxWidth="sm">
                     <ReportProblemIcon sx={{ fontSize: 80, color: 'warning.main', mb: 2 }} />
-                    <Typography fontFamily={"Rubik"} variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+                    <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: 'text.primary' }}>
                         404 - Page Not Found
                     </Typography>
-                    <Typography fontFamily={"Rubik"} variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+                    <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
                         Oops! The page you're looking for doesn't exist or has been moved.
                     </Typography>
                     <Button

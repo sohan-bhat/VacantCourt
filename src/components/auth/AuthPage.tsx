@@ -165,13 +165,13 @@ const AuthPage: React.FC = () => {
             <div className="auth-page-container">
                 <div className="auth-form-wrapper">
                     <Link to={fromPath} className="auth-back-link" aria-label="Back to Dashboard">
-                        <IconButton component="span" sx={{ color: '#555', '&:hover': { color: '#1e3a8a' } }}>
+                        <IconButton component="span" sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
                             <ArrowBackIcon />
                         </IconButton>
                     </Link>
 
                     <h2>Reset Password</h2>
-                    <p style={{ fontSize: '0.9em', color: '#555', textAlign: 'center', marginBottom: '20px', fontFamily: 'Rubik' }}>
+                    <p style={{ fontSize: '0.9em', color: '#555', textAlign: 'center', marginBottom: '20px' }}>
                         Enter your account's email to receive a password reset link.
                     </p>
 
@@ -205,7 +205,7 @@ const AuthPage: React.FC = () => {
                         </Form.Submit>
                     </Form.Root>
 
-                    <p className="auth-toggle-prompt" style={{ fontFamily: 'Rubik' }}>
+                    <p className="auth-toggle-prompt">
                         Remembered your password?
                         <button onClick={() => { setView('login'); resetFormState(); }} className="auth-toggle-button" disabled={isLoading}>
                             Back to Login
@@ -225,7 +225,7 @@ const AuthPage: React.FC = () => {
             <div className="auth-page-container">
                 <div className="auth-form-wrapper">
                     <Link to={fromPath} className="auth-back-link" aria-label="Back to Dashboard">
-                        <IconButton component="span" sx={{ color: '#555', '&:hover': { color: '#1e3a8a' } }}>
+                        <IconButton component="span" sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
                             <ArrowBackIcon />
                         </IconButton>
                     </Link>
@@ -329,7 +329,7 @@ const AuthPage: React.FC = () => {
                         </Form.Submit>
                     </Form.Root>
 
-                    <p className="auth-toggle-prompt" style={{ fontFamily: 'Rubik' }}>
+                    <p className="auth-toggle-prompt">
                         {view === 'login' ? "Don't have an account?" : 'Already have an account?'}
                         <button onClick={() => { setView(view === 'login' ? 'signup' : 'login'); resetFormState(); }} className="auth-toggle-button" disabled={isLoading}>
                             {view === 'login' ? 'Sign Up' : 'Login'}

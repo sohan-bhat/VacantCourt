@@ -158,7 +158,7 @@ function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMap
                                             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(court.address)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ display: 'inline-block', marginTop: '5px', color: '#1e3a8a', textDecoration: 'none', fontWeight: 'bold' }}
+                                            style={{ display: 'inline-block', marginTop: '5px', color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 'bold' }}
                                         >
                                             Get Directions (Google Maps)
                                         </a>
@@ -192,12 +192,12 @@ function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMap
                                     transform: 'translateY(-3px)',
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                                 },
-                                border: `1px solid ${!court.isComplexConfigured ? '#bdbdbd' : (court.available > 0 ? '#28a745' : '#dc3545')}`,
+                                border: `1px solid ${!court.isComplexConfigured ? '#bdbdbd' : (court.available > 0 ? 'var(--success-color)' : 'var(--error-color)')}`,
                                 opacity: !court.isComplexConfigured ? 0.85 : 1,
                             }}
                         >
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 1 }}>
-                                <Typography fontFamily={"Rubik"}variant="h6" component="h4" sx={{ color: '#1e3a8a', fontWeight: 600, flexGrow: 1 }}>
+                                <Typography variant="h6" component="h4" sx={{ color: 'primary.main', fontWeight: 600, flexGrow: 1 }}>
                                     {court.name}
                                 </Typography>
                                 {!court.isComplexConfigured && (
@@ -209,13 +209,13 @@ function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMap
                             
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                                 <LocationOnIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.secondary', transform: 'translateY(-0.27rem)'  }} />
-                                <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary">
+                                <Typography variant="body2" color="text.secondary">
                                     {court.location}
                                 </Typography>
                             </Box>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                                 <SportsTennisIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.secondary', transform: 'translateY(-0.27rem)'  }} />
-                                <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary">
+                                <Typography variant="body2" color="text.secondary">
                                     {court.type}
                                 </Typography>
                             </Box>
@@ -224,21 +224,21 @@ function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMap
                                 {!court.isComplexConfigured ? (
                                     <>
                                         <SettingsSuggestIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.disabled', transform: 'translateY(-0.27rem)'  }} />
-                                        <Typography fontFamily={"Rubik"}variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
                                             Not Configured ({court.total} total courts)
                                         </Typography>
                                     </>
                                 ) : court.available > 0 ? (
                                     <>
-                                        <CheckCircleIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#28a745', transform: 'translateY(-0.27rem)'  }} />
-                                        <Typography fontFamily={"Rubik"}variant="body2" sx={{ fontWeight: 500, color: '#28a745' }} >
+                                        <CheckCircleIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'success.main', transform: 'translateY(-0.27rem)'  }} />
+                                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.main' }} >
                                             Available ({court.available}/{court.total})
                                         </Typography>
                                     </>
                                 ) : (
                                     <>
-                                        <CancelIcon sx={{ fontSize: '1rem', mr: 0.5, color: '#dc3545', transform: 'translateY(-0.27rem)'  }} />
-                                        <Typography fontFamily={"Rubik"}variant="body2" sx={{ fontWeight: 500, color: '#dc3545' }} >
+                                        <CancelIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'error.main', transform: 'translateY(-0.27rem)'  }} />
+                                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }} >
                                             Unavailable ({court.available}/{court.total})
                                         </Typography>
                                     </>
@@ -246,7 +246,7 @@ function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMap
                             </Box>
 
                             {court.distanceKm !== undefined && (
-                                <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1, fontWeight: 500 }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1, fontWeight: 500 }}>
                                     {court.distanceKm} km away
                                 </Typography>
                             )}
@@ -257,7 +257,7 @@ function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMap
                                         variant="contained"
                                         color="primary"
                                         fullWidth
-                                        sx={{ bgcolor: '#1e3a8a', '&:hover': { bgcolor: '#172d6e' } }}
+                                        sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
                                     >
                                         View Details
                                     </MuiButton>

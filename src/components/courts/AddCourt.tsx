@@ -334,15 +334,15 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2, bgcolor: 'background.paper' } }}>
-            <DialogTitle sx={{ bgcolor: '#1e3a8a', color: 'white', py: 2, px: { xs: 2, sm: 3 } }}>Add New Sports Facility</DialogTitle>
+            <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', py: 2, px: { xs: 2, sm: 3 } }}>Add New Sports Facility</DialogTitle>
             <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
                 <Alert severity="warning" sx={{ mb: 3, borderRadius: 2, '& .MuiAlert-icon': { color: 'warning.dark' } }}>
                     Note: The facility will not be visible until configured with our hardware system.
                 </Alert>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                     <Box ref={basicInfoRef}>
-                        <Typography fontFamily={"Rubik"}variant="h6" sx={{ color: '#1e3a8a' }} gutterBottom>Facility Information</Typography>
-                        <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mb: 2 }}>Enter general information</Typography>
+                        <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Facility Information</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Enter general information</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField autoComplete='off' required label="Facility Name" placeholder="e.g. Downtown Tennis Center"
                                 value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -362,8 +362,8 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                     </Box>
                     <Divider />
                     <Box ref={contactInfoRef}>
-                        <Typography fontFamily={"Rubik"}variant="h6" sx={{ color: '#1e3a8a' }} gutterBottom>Facility Details</Typography>
-                        <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mb: 2 }}>Facility contact information</Typography>
+                        <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Facility Details</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Facility contact information</Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <Autocomplete
                                 fullWidth
@@ -425,35 +425,35 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                     </Box>
                     <Divider />
                     <Box>
-                        <Typography fontFamily={"Rubik"}variant="h6" sx={{ color: '#1e3a8a' }} gutterBottom>Amenities</Typography>
-                        <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mb: 2 }}>List available amenities</Typography>
+                        <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Amenities</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>List available amenities</Typography>
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mb: 2, alignItems: { sm: 'center' } }}>
                             <TextField autoComplete='off' size="small" value={amenity} onChange={(e) => setAmenity(e.target.value)}
                                 placeholder="Enter an amenity" fullWidth
                             />
-                            <Button onClick={handleAddAmenity} variant="contained" size="small" sx={{ minWidth: '100px', width: { xs: '100%', sm: 'auto' }, bgcolor: '#1e3a8a', '&:hover': { bgcolor: '#1e3a8a', opacity: 0.9 } }}>Add</Button>
+                            <Button onClick={handleAddAmenity} variant="contained" size="small" sx={{ minWidth: '100px', width: { xs: '100%', sm: 'auto' }, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>Add</Button>
                         </Box>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                             {formData.amenities.map((item, index) => (
                                 <Chip key={index} label={item} onDelete={() => setFormData({ ...formData, amenities: formData.amenities.filter((_, i) => i !== index) })}
-                                    sx={{ bgcolor: '#1e3a8a', color: 'white', '& .MuiChip-deleteIcon': { color: 'white' } }}
+                                    sx={{ bgcolor: 'primary.main', color: 'white', '& .MuiChip-deleteIcon': { color: 'white' } }}
                                 />
                             ))}
                         </Box>
                     </Box>
                     <Divider />
                     <Box ref={courtsRef}>
-                        <Typography fontFamily={"Rubik"}variant="h6" sx={{ color: '#1e3a8a' }} gutterBottom>Individual Courts</Typography>
-                        <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mb: 2 }}>Details for each court</Typography>
+                        <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Individual Courts</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Details for each court</Typography>
                         <Box sx={{ mb: 2 }}>{renderCourts()}</Box>
                         <Button startIcon={<AddIcon />} onClick={handleAddCourt} variant="outlined" size="small"
-                            sx={{ mb: 2, borderColor: '#1e3a8a', color: '#1e3a8a', '&:hover': { borderColor: '#1e3a8a', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}
+                            sx={{ mb: 2, borderColor: 'primary.main', color: 'primary.main', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}
                         >Add Another Court</Button>
                     </Box>
                     <Divider />
                     <Box ref={descriptionRef}>
-                        <Typography fontFamily={"Rubik"}variant="h6" sx={{ color: '#1e3a8a' }} gutterBottom>Facility Description</Typography>
-                        <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mb: 2 }}>Detailed description</Typography>
+                        <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Facility Description</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Detailed description</Typography>
                         <TextField autoComplete='off' required multiline rows={4} placeholder="Describe your facility..."
                             value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             error={!!errors.description} helperText={errors.description} fullWidth
@@ -461,8 +461,8 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                     </Box>
                     <Divider />
                     <Box>
-                        <Typography fontFamily={"Rubik"}variant="h6" sx={{ color: '#1e3a8a' }} gutterBottom>Facility Images</Typography>
-                        <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ mb: 2 }}>Add images (recommended)</Typography>
+                        <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Facility Images</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Add images (recommended)</Typography>
                         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
                             {formData.images.map((image, index) => (
                                 <Box key={index} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid #ddd', }}>
@@ -482,11 +482,11 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                                 </Box>
                             ))}
                             {formData.images.length < 5 && !isSubmitting && (
-                                <Box component="label" sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, border: '2px dashed #ccc', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', '&:hover': { borderColor: '#1e3a8a', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}>
+                                <Box component="label" sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, border: '2px dashed #ccc', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}>
                                     <input type="file" autoComplete='off' hidden accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { handleImageAdd(file); e.target.value = ''; } }} />
                                     <AddPhotoAlternateIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: '#666', mb: 1 }} />
-                                    <Typography fontFamily={"Rubik"}variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: { xs: '0.75rem', sm: '0.875rem' } }} >Add Image</Typography>
-                                    <Typography fontFamily={"Rubik"}variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>(Max 5)</Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: { xs: '0.75rem', sm: '0.875rem' } }} >Add Image</Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>(Max 5)</Typography>
                                 </Box>
                             )}
                         </Box>
@@ -495,10 +495,10 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
             </DialogContent>
             <DialogActions sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'grey.50', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
                 <Button onClick={onClose} variant="outlined" disabled={isSubmitting}
-                    sx={{ mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: '#1e3a8a', color: '#1e3a8a', '&:hover': { borderColor: '#1e3a8a', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}
+                    sx={{ mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: 'primary.main', color: 'primary.main', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}
                 >Cancel</Button>
                 <Button onClick={handleSubmit} variant="contained" disabled={isSubmitting}
-                    sx={{ px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: '#1e3a8a', '&:hover': { bgcolor: '#1e3a8a', opacity: 0.9 } }}
+                    sx={{ px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
                 >{isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Add Facility'}</Button>
             </DialogActions>
         </Dialog>

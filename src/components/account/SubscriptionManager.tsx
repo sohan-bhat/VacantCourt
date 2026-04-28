@@ -65,7 +65,7 @@ const SubscriptionManager: React.FC = () => {
                 border: '1px solid rgba(0, 0, 0, 0.05)',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
             }}>
-                <Typography fontFamily={"Rubik"} variant="h4" sx={{ mb: 2, fontWeight: 'bold', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+                <Typography variant="h4" sx={{ mb: 2, fontWeight: 'bold', fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
                     My Subscriptions
                 </Typography>
                 {subscriptions.length === 0 ? (
@@ -86,7 +86,7 @@ const SubscriptionManager: React.FC = () => {
                                 sx={{ py: 1.5 }}
                             >
                                 <ListItemText
-                                    primary={<Typography fontFamily={"Rubik"} variant="body1" sx={{ fontWeight: 500 }}>{sub.courtName}</Typography>}
+                                    primary={<Typography variant="body1" sx={{ fontWeight: 500 }}>{sub.courtName}</Typography>}
                                     secondary={`Requested on: ${new Date().toLocaleDateString()}`}
                                 />
                             </ListItem>

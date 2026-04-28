@@ -13,6 +13,7 @@ import {
     Divider,
     IconButton,
     Typography,
+    alpha,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import LoginIcon from '@mui/icons-material/Login';
@@ -74,8 +75,8 @@ function Header() {
 
     return (
         <header className="app-header">
-            <div className="header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                <nav className='main-nav' style={{ position: 'relative', top: '3px' }}>
+            <div className="header-container">
+                <nav className='main-nav'>
                     <Link to="/dashboard" className="logo-link">
                         <img src='/ground.png' alt="Vacant Court Logo" className="header-logo-img" />
                         <span className="header-logo-text">Vacant Court</span>
@@ -90,10 +91,13 @@ function Header() {
                             {currentUser && (
                                 <Button
                                     variant="contained"
-                                    color="primary"
                                     onClick={handleOpenAddCourt}
                                     startIcon={<AddIcon />}
-                                    sx={{ fontFamily: ['Rubik'] }}
+                                    sx={{
+                                        bgcolor: 'white',
+                                        color: 'primary.main',
+                                        '&:hover': { bgcolor: 'grey.100' },
+                                    }}
                                 >
                                     Add Court
                                 </Button>
@@ -102,10 +106,13 @@ function Header() {
                             {!currentUser && (
                                 <Button
                                     variant="contained"
-                                    color="primary"
                                     onClick={() => navigate('/auth', { state: { from: location } })}
                                     startIcon={<LoginIcon />}
-                                    sx={{ textTransform: 'none', fontFamily: 'Rubik' }}
+                                    sx={{
+                                        bgcolor: 'white',
+                                        color: 'primary.main',
+                                        '&:hover': { bgcolor: 'grey.100' },
+                                    }}
                                 >
                                     Login / Sign Up
                                 </Button>
@@ -127,11 +134,11 @@ function Header() {
                                             p: '4px',
                                             borderRadius: '50px',
                                             cursor: 'pointer',
-                                            transition: 'background-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                                            transition: 'all 0.2s ease',
                                             boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.15)',
                                             '&:hover': {
-                                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                                boxShadow: '0 0 0 1px rgba(0, 191, 255, 0.8)',
+                                                backgroundColor: (theme) => alpha(theme.palette.common.white, 0.1),
+                                                boxShadow: (theme) => `0 0 0 1px ${alpha(theme.palette.primary.light, 0.8)}`,
                                             }
                                         }}
                                     >
@@ -143,7 +150,7 @@ function Header() {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            border: '2px solid #00bfff'
+                                            border: (theme) => `2px solid ${theme.palette.primary.light}`,
                                         }}>
                                             {currentUser.photoURL ? (
                                                 <Box component="img" src={currentUser.photoURL} alt="Profile" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -157,10 +164,10 @@ function Header() {
                                             alignItems: 'flex-start',
                                             color: 'white'
                                         }}>
-                                            <Typography fontFamily={"Rubik"} sx={{ fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.2 }}>
+                                            <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.2 }}>
                                                 {currentUser.displayName || 'User'}
                                             </Typography>
-                                            <Typography fontFamily={"Rubik"} sx={{ fontSize: '0.75rem', opacity: 0.8, lineHeight: 1.2, marginRight: '5px' }}>
+                                            <Typography sx={{ fontSize: '0.75rem', opacity: 0.8, lineHeight: 1.2, marginRight: '5px' }}>
                                                 {currentUser.email}
                                             </Typography>
                                         </Box>
@@ -189,22 +196,22 @@ function Header() {
                             >
                                 <MenuItem component={Link} to="/about" onClick={handleMenuClose}>
                                     <ListItemIcon><InfoIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText sx={{ fontFamily: 'Rubik' }} disableTypography>About</ListItemText>
+                                    <ListItemText>About</ListItemText>
                                 </MenuItem>
                                 <MenuItem component={Link} to="/contact" onClick={handleMenuClose}>
                                     <ListItemIcon><ContactMailIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText sx={{ fontFamily: 'Rubik' }} disableTypography>Contact</ListItemText>
+                                    <ListItemText>Contact</ListItemText>
                                 </MenuItem>
 
                                 <Divider sx={{ my: 0.5 }} />
 
                                 <MenuItem component={Link} to="/privacy" onClick={handleMenuClose}>
                                     <ListItemIcon><PrivacyTipIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText sx={{ fontFamily: 'Rubik' }} disableTypography>Privacy Policy</ListItemText>
+                                    <ListItemText>Privacy Policy</ListItemText>
                                 </MenuItem>
                                 <MenuItem component={Link} to="/tos" onClick={handleMenuClose}>
                                     <ListItemIcon><GavelIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText sx={{ fontFamily: 'Rubik' }} disableTypography>Terms of Service</ListItemText>
+                                    <ListItemText>Terms of Service</ListItemText>
                                 </MenuItem>
 
                                 {currentUser && <Divider sx={{ my: 0.5 }} />}
@@ -212,13 +219,13 @@ function Header() {
                                 {currentUser && (
                                     <MenuItem onClick={handleSettings}>
                                         <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
-                                        <ListItemText sx={{ fontFamily: 'Rubik' }} disableTypography>Account Settings</ListItemText>
+                                        <ListItemText>Account Settings</ListItemText>
                                     </MenuItem>
                                 )}
                                 {currentUser && (
                                     <MenuItem onClick={handleLogout}>
                                         <ListItemIcon><ExitToAppIcon fontSize="small" /></ListItemIcon>
-                                        <ListItemText sx={{ fontFamily: 'Rubik' }} disableTypography>Log Out</ListItemText>
+                                        <ListItemText>Log Out</ListItemText>
                                     </MenuItem>
                                 )}
                             </Menu>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Container, Typography, Stack, Paper, createTheme, ThemeProvider, AppBar, Toolbar, useMediaQuery, CircularProgress } from '@mui/material';
+import { Box, Button, Container, Typography, Stack, Paper, AppBar, Toolbar, useMediaQuery, CircularProgress, useTheme } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
@@ -16,15 +16,11 @@ import { Fade, Flip } from "react-awesome-reveal";
 import { useAuth } from '../auth/AuthContext';
 import PageMeta from '../layout/PageMeta';
 
-const splashTheme = createTheme({
-    typography: { fontFamily: '"Rubik", "Roboto", "Helvetica", "Arial", sans-serif' },
-    palette: { primary: { main: '#1e3a8a' }, secondary: { main: '#0d9488' } },
-});
-
 const FloatingHeader: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const isMobile = useMediaQuery(splashTheme.breakpoints.down('sm'));
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const { currentUser, isLoading } = useAuth();
 
@@ -84,7 +80,8 @@ const FloatingHeader: React.FC = () => {
 
 const SplashPage: React.FC = () => {
     const navigate = useNavigate();
-    const isMobile = useMediaQuery(splashTheme.breakpoints.down('sm'));
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const whyData = [
         {
@@ -105,7 +102,7 @@ const SplashPage: React.FC = () => {
     ];
 
     return (
-        <ThemeProvider theme={splashTheme}>
+        <>
             <PageMeta
                 title="Find Available Courts"
                 description="Know before you go. VacantCourt shows you the real-time availability of tennis & pickleball courts, powered by our unique hardware sensor system."
@@ -115,13 +112,13 @@ const SplashPage: React.FC = () => {
                 <Box sx={{ background: 'radial-gradient(circle, rgba(230,230,255,0.4) 0%, rgba(255,255,255,0) 60%)', pt: { xs: 6, md: 10 }, pb: { xs: 8, md: 12 }, textAlign: 'center' }}>
                     <Container maxWidth="lg">
                         <Fade direction="up" triggerOnce cascade damping={0.2}>
-                            <Typography variant="h1" sx={{ fontSize: { xs: '2.75rem', sm: '3.75rem', md: '4.5rem' }, fontWeight: 800, letterSpacing: '-1.5px', background: 'linear-gradient(90deg, #1e3a8a, #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            <Typography variant="h1" sx={{ fontSize: { xs: '2.75rem', sm: '3.75rem', md: '4.5rem' }, fontWeight: 800, letterSpacing: '-1.5px', background: 'linear-gradient(90deg, #2d4a7a, #5a8ec7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                                 Know Before You Go.
                             </Typography>
                             <Typography variant="h5" color="text.secondary" sx={{ mt: 3, mb: 4, mx: 'auto', maxWidth: '700px', fontSize: { xs: '1.1rem', md: '1.5rem' } }}>
                                 VacantCourt shows you the real-time availability of tennis & pickleball courts, powered by our unique hardware sensor system.
                             </Typography>
-                            <Button variant="contained" size="large" onClick={() => navigate('/dashboard')} sx={{ borderRadius: '999px', px: { xs: 4, md: 5 }, py: 1.5, fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'none', boxShadow: '0 8px 25px -8px #1e3a8a' }}>
+                            <Button variant="contained" size="large" onClick={() => navigate('/dashboard')} sx={{ borderRadius: '999px', px: { xs: 4, md: 5 }, py: 1.5, fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'none', boxShadow: '0 8px 25px -8px #2d4a7a' }}>
                                 Explore Available Courts
                             </Button>
                         </Fade>
@@ -267,7 +264,7 @@ const SplashPage: React.FC = () => {
                     <Container maxWidth="md"><Fade direction="up" triggerOnce><Typography variant="h2" sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 800 }}>Ready to Find Your <i> Vacant</i> Court?</Typography><Typography sx={{ my: 3, mx: 'auto', maxWidth: '600px', color: 'grey.300' }}>Spend less time waiting and more time playing. It's free to use and always will be for players.</Typography><Button variant="contained" size="large" onClick={() => navigate('/dashboard')} color="secondary" sx={{ borderRadius: '999px', px: 5, py: 1.5, fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'none', bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.200' } }}>Start Searching Now</Button></Fade></Container>
                 </Box>
             </Box>
-        </ThemeProvider>
+        </>
     );
 };
 

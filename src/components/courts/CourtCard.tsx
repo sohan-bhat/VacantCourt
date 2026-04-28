@@ -21,7 +21,8 @@ import {
     Typography,
     FormControl,
     Stack,
-    Skeleton
+    Skeleton,
+    Chip,
 } from '@mui/material';
 import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 import NotificationsIcon from '@mui/icons-material/Notifications';
@@ -93,10 +94,10 @@ function SingleCourtCard({ court }: { court: CourtCardSummary }) {
     return (
         <div className={`court-card ${!court.isComplexConfigured ? 'court-card-unconfigured' : ''}`}>
             <div className="court-info">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <h3 className="court-name" style={{ margin: '0 0 10px 0', flexGrow: 1, opacity: court.isComplexConfigured ? 1 : 0.7 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <Typography variant="h6" component="h3" color="primary.main" sx={{ flexGrow: 1, opacity: court.isComplexConfigured ? 1 : 0.7, fontSize: '1.1rem', mb: 1 }}>
                         {court.name}
-                    </h3>
+                    </Typography>
                     {court.isComplexConfigured && court.available === 0 && (
                         <NotificationButton court={court} />
                     )}
@@ -105,19 +106,18 @@ function SingleCourtCard({ court }: { court: CourtCardSummary }) {
                             <SettingsSuggestIcon color="disabled" sx={{ mb: 1.5 }} />
                         </Tooltip>
                     )}
-                </div>
-                <p className="court-type" style={{ fontFamily: 'Rubik', opacity: court.isComplexConfigured ? 1 : 0.7 }}>{court.type}</p>
-                <p className="court-location" style={{ fontFamily: 'Rubik', opacity: court.isComplexConfigured ? 1 : 0.7 }}>{court.location}</p>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ opacity: court.isComplexConfigured ? 1 : 0.7, mb: 0.5 }}>{court.type}</Typography>
+                <Typography variant="body2" color="text.primary" sx={{ opacity: court.isComplexConfigured ? 1 : 0.7, mb: 2 }}>{court.location}</Typography>
 
-                <Box className="availability-indicator" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         {!court.isComplexConfigured ? (
-                            <span className={`availability-status unconfigured`}>Not Configured</span>
+                            <Chip label="Not Configured" size="small" color="default" />
                         ) : court.available > 0 ? (
-                            <span className={`availability-status available`}>Available</span>
+                            <Chip label="Available" size="small" color="success" />
                         ) : (
-                            <span className={`availability-status unavailable`}>Unavailable</span>
+                            <Chip label="Unavailable" size="small" color="error" />
                         )}
                         {isStale && (
                             <Tooltip title="Status data may be outdated. The monitoring hardware appears to be offline.">
@@ -126,14 +126,23 @@ function SingleCourtCard({ court }: { court: CourtCardSummary }) {
                         )}
                     </Box>
 
-                    <span className={`court-count ${!court.isComplexConfigured ? 'unconfigured-count' : ''}`}>
+                    <Typography variant="caption" color="text.secondary">
                         {!court.isComplexConfigured ? `(${court.total} total courts)` : `${court.available} / ${court.total} courts`}
-                    </span>
+                    </Typography>
                 </Box>
             </div>
-            <div className="court-actions">
-                <Link to={`/court/${court.id}`} className="view-details">View Details</Link>
-            </div>
+            <Box className="court-actions">
+                <Button
+                    component={Link}
+                    to={`/court/${court.id}`}
+                    fullWidth
+                    variant="text"
+                    color="primary"
+                    sx={{ py: 1.5, borderTop: 1, borderColor: 'divider', borderRadius: 0 }}
+                >
+                    View Details
+                </Button>
+            </Box>
         </div>
     );
 }
@@ -292,7 +301,7 @@ function NotificationButton({ court }: NotificationButtonProps) {
                                     <FormControlLabel value="email" control={<Radio />} label={
                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                             <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                                            <Typography fontFamily={"Rubik"} variant="body1" sx={{ fontWeight: 500 }}>Email Notification</Typography>
+                                            <Typography variant="body1" sx={{ fontWeight: 500 }}>Email Notification</Typography>
                                         </Box>
                                     } />
                                     <TextField
@@ -325,7 +334,7 @@ function NotificationButton({ court }: NotificationButtonProps) {
                                                 label={
                                                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                         <SmsIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                                                        <Typography fontFamily={"Rubik"} variant="body1" sx={{ fontWeight: 500 }}>SMS Notification</Typography>
+                                                        <Typography variant="body1" sx={{ fontWeight: 500 }}>SMS Notification</Typography>
                                                     </Box>
                                                 }
                                             />

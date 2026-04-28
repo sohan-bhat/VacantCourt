@@ -268,14 +268,13 @@ function CourtDetails() {
                                 <ArrowBackIcon />
                             </IconButton>
                         </Link>
-                        <Typography fontFamily={"Rubik"} variant={isMobileView ? "h5" : "h4"} component="h2" sx={{
+                        <Typography variant={isMobileView ? "h5" : "h4"} component="h2" sx={{
                             ml: { xs: 1, sm: 2 },
                             color: 'primary.dark',
                             fontWeight: 700,
                             flexShrink: 1,
                             minWidth: 0,
                             wordBreak: 'break-word',
-                            fontFamily: 'Rubik'
                         }}>
                             {courtDetails.name}
                         </Typography>
@@ -290,7 +289,6 @@ function CourtDetails() {
                             whiteSpace: 'nowrap',
                             flexShrink: 0,
                             border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                            fontFamily: 'Rubik'
                         }}>
                             {courtDetails.type}
                         </Box>
@@ -326,7 +324,7 @@ function CourtDetails() {
                             sx={{
                                 '& .MuiTabs-flexContainer': {
                                     border: `1px solid ${theme.palette.primary.main}`,
-                                    borderRadius: theme.shape.borderRadius,
+                                    borderRadius: 1.25,
                                     overflow: 'hidden',
                                 },
                                 '& .MuiTab-root': {
@@ -359,7 +357,7 @@ function CourtDetails() {
                         <Box sx={{ flex: { md: '1 1 50%' }, minWidth: 0 }}>
                             <Paper elevation={3} sx={{
                                 p: 0,
-                                borderRadius: theme.shape.borderRadius,
+                                borderRadius: 1.25,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -404,13 +402,13 @@ function CourtDetails() {
                                             )}
                                         </>
                                     ) : (
-                                        <Typography fontFamily={"Rubik"} variant="body1" color="text.secondary">No Images Available</Typography>
+                                        <Typography variant="body1" color="text.secondary">No Images Available</Typography>
                                     )}
                                 </Box>
 
                                 {courtDetails.amenities && courtDetails.amenities.length > 0 && (
                                     <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
-                                        <Typography fontFamily={"Rubik"} variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                        <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
                                             Amenities
                                         </Typography>
                                         <Grid container spacing={1}>
@@ -418,7 +416,7 @@ function CourtDetails() {
                                                 <Grid key={index}>
                                                     <ListItem disableGutters sx={{ py: 0.5 }}>
                                                         <ListItemIcon sx={{ minWidth: 35, color: 'success.main' }}><CheckCircleOutlineIcon /></ListItemIcon>
-                                                        <ListItemText primary={<Typography fontFamily={"Rubik"} variant="body2" color="text.primary" sx={{ fontSize: '0.9rem' }}>{amenity}</Typography>} />
+                                                        <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem' }}>{amenity}</Typography>} />
                                                     </ListItem>
                                                 </Grid>
                                             ))}
@@ -433,48 +431,48 @@ function CourtDetails() {
                         <Box sx={{ flex: { md: '1 1 50%' }, minWidth: 0 }}>
                             <Paper elevation={3} sx={{
                                 p: { xs: 2, sm: 2.5 },
-                                borderRadius: theme.shape.borderRadius,
+                                borderRadius: 1.25,
                                 height: '100%',
                                 display: 'flex',
                                 flexDirection: 'column'
                             }}>
                                 {courtDetails.description && (
                                     <Box sx={{ mb: 3 }}>
-                                        <Typography fontFamily={"Rubik"} variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                        <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
                                             About
                                         </Typography>
-                                        <Typography fontFamily={"Rubik"} variant="body1" color="text.secondary" sx={{ fontSize: '1rem', lineHeight: 1.6 }}>
+                                        <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', lineHeight: 1.6 }}>
                                             {courtDetails.description}
                                         </Typography>
                                     </Box>
                                 )}
                                 <Box>
-                                    <Typography fontFamily={"Rubik"} variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                                    <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
                                         Contact & Location
                                     </Typography>
                                     <List dense disablePadding>
                                         {courtDetails.location && (
                                             <ListItem disableGutters sx={{ py: 0.5 }}>
                                                 <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><PlaceIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography fontFamily={"Rubik"} variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>General Area: <Typography fontFamily={"Rubik"} component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.location}</Typography></Typography>} />
+                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>General Area: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.location}</Typography></Typography>} />
                                             </ListItem>
                                         )}
                                         {courtDetails.address && (
                                             <ListItem disableGutters sx={{ py: 0.5 }}>
                                                 <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><LocationOnIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography fontFamily={"Rubik"} variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Address: <Typography fontFamily={"Rubik"} component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.address}</Typography></Typography>} />
+                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Address: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.address}</Typography></Typography>} />
                                             </ListItem>
                                         )}
                                         {courtDetails.phone && (
                                             <ListItem disableGutters sx={{ py: 0.5 }}>
                                                 <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><PhoneIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography fontFamily={"Rubik"} variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Phone: <Typography fontFamily={"Rubik"} component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.phone}</Typography></Typography>} />
+                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Phone: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.phone}</Typography></Typography>} />
                                             </ListItem>
                                         )}
                                         {courtDetails.hours && (
                                             <ListItem disableGutters sx={{ py: 0.5 }}>
                                                 <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><AccessTimeIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography fontFamily={"Rubik"} variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Hours: <Typography fontFamily={"Rubik"} component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.hours}</Typography></Typography>} />
+                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Hours: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.hours}</Typography></Typography>} />
                                             </ListItem>
                                         )}
                                         {courtDetails.address && (
@@ -507,15 +505,15 @@ function CourtDetails() {
                     <Box sx={{ mt: { xs: 2, md: 4 } }}>
                         <Paper elevation={3} sx={{
                             p: { xs: 2, sm: 2.5 },
-                            borderRadius: theme.shape.borderRadius,
+                            borderRadius: 1.25,
                         }}>
-                            <Typography fontFamily={"Rubik"} variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600, fontFamily: 'Rubik' }}>
+                            <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
                                 Court Availability
                             </Typography>
                             {courtDetails.courts && courtDetails.courts.length > 0 ? (
                                 <CourtSchedule courts={courtDetails.courts} />
                             ) : (
-                                <Typography fontFamily={"Rubik"} variant="body2" color="text.secondary" sx={{ mt: 2, fontSize: '0.9rem' }}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontSize: '0.9rem' }}>
                                     No individual courts have been configured for this facility yet.
                                 </Typography>
                             )}
