@@ -6,6 +6,9 @@ A real-time court occupancy system that uses on-device computer vision to detect
 
 This repo contains the web frontend. The Android detector that powers the live status feed lives at [VacantCourtApp](https://github.com/sohan-bhat/VacantCourtApp).
 
+## Demo
+https://github.com/user-attachments/assets/c72ba944-287d-4beb-8583-8a5da9a9024c
+
 ## How it works
 
 The system has three parts:
