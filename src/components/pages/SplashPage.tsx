@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Button, Container, Typography, Stack, Paper, AppBar, Toolbar, useMediaQuery, CircularProgress, useTheme } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SearchIcon from '@mui/icons-material/Search';
@@ -10,11 +10,111 @@ import GridViewIcon from '@mui/icons-material/GridView';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle'
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { IconButton } from '@mui/material';
-import { Fade, Flip } from "react-awesome-reveal";
 import { useAuth } from '../auth/AuthContext';
 import PageMeta from '../layout/PageMeta';
+
+const EASE_OUT_EXPO = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
+function useInView<T extends HTMLElement = HTMLDivElement>(rootMargin = '0px 0px -10% 0px') {
+    const ref = useRef<T | null>(null);
+    const [inView, setInView] = useState(false);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        if (typeof IntersectionObserver === 'undefined') {
+            setInView(true);
+            return;
+        }
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setInView(true);
+                    observer.unobserve(entry.target);
+                }
+            },
+            { rootMargin, threshold: 0.1 }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [rootMargin]);
+
+    return { ref, inView };
+}
+
+interface RevealProps {
+    children: React.ReactNode;
+    delay?: number;
+    y?: number;
+    duration?: number;
+}
+
+const Reveal: React.FC<RevealProps> = ({ children, delay = 0, y = 16, duration = 700 }) => {
+    const { ref, inView } = useInView();
+    return (
+        <Box
+            ref={ref}
+            sx={{
+                opacity: inView ? 1 : 0,
+                transform: inView ? 'translate3d(0,0,0)' : `translate3d(0, ${y}px, 0)`,
+                transition: `opacity ${duration}ms ${EASE_OUT_EXPO} ${delay}ms, transform ${duration}ms ${EASE_OUT_EXPO} ${delay}ms`,
+                willChange: 'opacity, transform',
+            }}
+        >
+            {children}
+        </Box>
+    );
+};
+
+const SpotlightCard: React.FC<{ children: React.ReactNode; variant?: 'outlined' | 'elevation'; elevation?: number; sx?: object }> = ({
+    children,
+    variant = 'outlined',
+    elevation,
+    sx,
+}) => {
+    const cardRef = useRef<HTMLDivElement | null>(null);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        const el = cardRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        el.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    };
+
+    return (
+        <Paper
+            ref={cardRef}
+            variant={variant}
+            elevation={elevation}
+            onMouseMove={handleMouseMove}
+            sx={{
+                position: 'relative',
+                overflow: 'hidden',
+                transition: `border-color 300ms ${EASE_OUT_EXPO}, box-shadow 300ms ${EASE_OUT_EXPO}`,
+                '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    inset: 0,
+                    borderRadius: 'inherit',
+                    background: 'radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(33, 65, 130, 0.10), transparent 45%)',
+                    opacity: 0,
+                    transition: `opacity 300ms ${EASE_OUT_EXPO}`,
+                    pointerEvents: 'none',
+                },
+                '&:hover': {
+                    borderColor: 'rgba(33, 65, 130, 0.25)',
+                },
+                '&:hover::before': { opacity: 1 },
+                ...sx,
+            }}
+        >
+            {children}
+        </Paper>
+    );
+};
 
 const FloatingHeader: React.FC = () => {
     const navigate = useNavigate();
@@ -49,18 +149,18 @@ const FloatingHeader: React.FC = () => {
                     </Button>
                 </Stack>
             );
-        } else {
-            return (
-                <Stack direction="row" spacing={1.5}>
-                    <Button variant="outlined" color="primary" size="small" onClick={() => navigate('/dashboard')} startIcon={<GridViewIcon />} sx={{ borderRadius: '999px', textTransform: 'none', display: { xs: 'none', sm: 'inline-flex' } }}>
-                        Dashboard
-                    </Button>
-                    <Button variant="contained" color="primary" size="small" onClick={() => navigate('/auth', { state: { from: location } })} startIcon={<LoginIcon />} sx={{ borderRadius: '999px', textTransform: 'none' }}>
-                        {isMobile ? 'Login' : 'Login / Sign Up'}
-                    </Button>
-                </Stack>
-            );
         }
+
+        return (
+            <Stack direction="row" spacing={1.5}>
+                <Button variant="outlined" color="primary" size="small" onClick={() => navigate('/dashboard')} startIcon={<GridViewIcon />} sx={{ borderRadius: '999px', textTransform: 'none', display: { xs: 'none', sm: 'inline-flex' } }}>
+                    Dashboard
+                </Button>
+                <Button variant="contained" color="primary" size="small" onClick={() => navigate('/auth', { state: { from: location } })} startIcon={<LoginIcon />} sx={{ borderRadius: '999px', textTransform: 'none' }}>
+                    {isMobile ? 'Login' : 'Login / Sign Up'}
+                </Button>
+            </Stack>
+        );
     };
 
     return (
@@ -101,6 +201,24 @@ const SplashPage: React.FC = () => {
         }
     ];
 
+    const featureData = [
+        {
+            icon: <SearchIcon color="primary" sx={{ fontSize: 40 }} />,
+            title: 'Find & Filter',
+            desc: 'Quickly search for courts in your area. Filter by type, distance, and availability to find the perfect spot.',
+        },
+        {
+            icon: <NotificationsActiveIcon color="primary" sx={{ fontSize: 40 }} />,
+            title: 'Instant Alerts',
+            desc: "Don't see an open court? Subscribe to get an email notification the second it becomes available.",
+        },
+        {
+            icon: <SportsTennisIcon color="primary" sx={{ fontSize: 40 }} />,
+            title: 'For Players, By Players',
+            desc: 'Built by and for the community to solve the one problem we all share: waiting.',
+        },
+    ];
+
     return (
         <>
             <PageMeta
@@ -109,159 +227,256 @@ const SplashPage: React.FC = () => {
             />
             <FloatingHeader />
             <Box sx={{ width: '100%', overflowX: 'hidden', bgcolor: 'background.paper' }}>
-                <Box sx={{ background: 'radial-gradient(circle, rgba(230,230,255,0.4) 0%, rgba(255,255,255,0) 60%)', pt: { xs: 6, md: 10 }, pb: { xs: 8, md: 12 }, textAlign: 'center' }}>
+                {/* HERO */}
+                <Box
+                    sx={{
+                        position: 'relative',
+                        background: 'radial-gradient(circle at 50% 0%, rgba(80, 120, 184, 0.10) 0%, rgba(255,255,255,0) 55%)',
+                        pt: { xs: 6, md: 10 },
+                        pb: { xs: 8, md: 12 },
+                        textAlign: 'center',
+                    }}
+                >
                     <Container maxWidth="lg">
-                        <Fade direction="up" triggerOnce cascade damping={0.2}>
-                            <Typography variant="h1" sx={{ fontSize: { xs: '2.75rem', sm: '3.75rem', md: '4.5rem' }, fontWeight: 800, letterSpacing: '-1.5px', background: 'linear-gradient(90deg, #2d4a7a, #5a8ec7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                                Know Before You Go.
-                            </Typography>
-                            <Typography variant="h5" color="text.secondary" sx={{ mt: 3, mb: 4, mx: 'auto', maxWidth: '700px', fontSize: { xs: '1.1rem', md: '1.5rem' } }}>
-                                VacantCourt shows you the real-time availability of tennis & pickleball courts, powered by our unique hardware sensor system.
-                            </Typography>
-                            <Button variant="contained" size="large" onClick={() => navigate('/dashboard')} sx={{ borderRadius: '999px', px: { xs: 4, md: 5 }, py: 1.5, fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'none', boxShadow: '0 8px 25px -8px #2d4a7a' }}>
+                        <Typography
+                            component="h1"
+                            sx={{
+                                fontSize: { xs: '2.75rem', sm: '3.75rem', md: '4.5rem' },
+                                fontWeight: 800,
+                                letterSpacing: '-0.03em',
+                                lineHeight: 1.05,
+                                background: 'linear-gradient(90deg, #2d4a7a, #5a8ec7)',
+                                WebkitBackgroundClip: 'text',
+                                backgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                color: 'transparent',
+                            }}
+                        >
+                            Know Before You Go.
+                        </Typography>
+
+                        <Typography
+                            variant="h5"
+                            color="text.secondary"
+                            sx={{
+                                mt: 3,
+                                mb: 4,
+                                mx: 'auto',
+                                maxWidth: '700px',
+                                fontSize: { xs: '1.1rem', md: '1.5rem' },
+                            }}
+                        >
+                            See live tennis court availability, powered by on-site hardware sensors.
+                        </Typography>
+
+                        <Box sx={{ display: 'inline-block' }}>
+                            <Button
+                                variant="contained"
+                                size="large"
+                                onClick={() => navigate('/dashboard')}
+                                sx={{
+                                    borderRadius: '999px',
+                                    px: { xs: 4, md: 5 },
+                                    py: 1.5,
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1rem',
+                                    textTransform: 'none',
+                                    boxShadow: '0 4px 12px -4px rgba(33, 65, 130, 0.30)',
+                                    transition: `box-shadow 250ms ${EASE_OUT_EXPO}`,
+                                    '&:hover': {
+                                        boxShadow: '0 6px 16px -6px rgba(33, 65, 130, 0.38)',
+                                    },
+                                }}
+                            >
                                 Explore Available Courts
                             </Button>
-                        </Fade>
+                        </Box>
 
-                        {isMobile ?
-                            <>
-                                <Fade direction="left" triggerOnce delay={isMobile ? 0 : 800}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                mt: { xs: 6, md: 10 },
+                                gap: { xs: 6, md: 8 },
+                            }}
+                        >
+                            <Box sx={{ order: { xs: 1, md: 2 } }}>
+                                <Reveal y={20}>
                                     <Paper
-                                        elevation={6}
+                                        elevation={0}
                                         sx={{
                                             borderRadius: '16px',
                                             overflow: 'hidden',
-                                            borderTop: '1px solid',
-                                            borderColor: 'grey.200',
-                                            mt: { xs: 6, md: 8 },
-                                            boxShadow: '0 16px 40px -15px rgba(0,0,0,0.2)',
-                                            border: '1px solid rgba(0,0,0,0.05)',
-                                            position: 'relative',
-                                        }}>
-                                        <img src="/assets/hardware.png" alt="VacantCourt hardware sensor" style={{ width: '100%', height: 'auto', display: 'block', aspectRatio: '20/9', objectFit: 'cover' }} />
+                                            boxShadow: '0 24px 50px -20px rgba(20, 42, 92, 0.25)',
+                                            border: '1px solid rgba(0,0,0,0.06)',
+                                        }}
+                                    >
+                                        <img
+                                            src="/assets/hardware.png"
+                                            alt="VacantCourt hardware sensor"
+                                            style={{ width: '100%', height: 'auto', display: 'block', aspectRatio: '20/9', objectFit: 'cover' }}
+                                        />
                                     </Paper>
-                                </Fade>
-                                <Fade direction="up" triggerOnce delay={500}>
-                                    <Box sx={{ mt: { xs: 8, md: 10 }, borderTop: '1px solid', borderColor: 'grey.200', pt: { xs: 6, md: 8 } }}>
-                                        <Stack
-                                            direction={{ xs: 'column', md: 'row' }}
-                                            spacing={{ xs: 5, md: 4 }}
-                                            justifyContent="space-around"
-                                            alignItems="center"
-                                        >
-                                            {whyData.map(item => (
-                                                <Box key={item.question} sx={{ textAlign: 'center', maxWidth: '320px' }}>
-                                                    {item.icon}
-                                                    <Typography variant="h6" sx={{ mt: 1.5, mb: 0.5, fontWeight: 'bold' }}>
-                                                        {item.question}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {item.answer}
-                                                    </Typography>
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    </Box>
-                                </Fade>
-                            </>
-                            :
-                            <>
-                                <Fade direction="up" triggerOnce delay={500}>
-                                    <Box sx={{ mt: { xs: 8, md: 10 }, borderTop: '1px solid', borderColor: 'grey.200', pt: { xs: 6, md: 8 } }}>
-                                        <Stack
-                                            direction={{ xs: 'column', md: 'row' }}
-                                            spacing={{ xs: 5, md: 4 }}
-                                            justifyContent="space-around"
-                                            alignItems="center"
-                                        >
-                                            {whyData.map(item => (
-                                                <Box key={item.question} sx={{ textAlign: 'center', maxWidth: '320px' }}>
-                                                    {item.icon}
-                                                    <Typography variant="h6" sx={{ mt: 1.5, mb: 0.5, fontWeight: 'bold' }}>
-                                                        {item.question}
-                                                    </Typography>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {item.answer}
-                                                    </Typography>
-                                                </Box>
-                                            ))}
-                                        </Stack>
-                                    </Box>
-                                </Fade>
+                                </Reveal>
+                            </Box>
 
-                                <Fade direction="left" triggerOnce delay={isMobile ? 0 : 800}>
-                                    <Paper
-                                        elevation={6}
-                                        sx={{
-                                            borderRadius: '16px',
-                                            overflow: 'hidden',
-                                            borderTop: '1px solid',
-                                            borderColor: 'grey.200',
-                                            mt: { xs: 6, md: 8 },
-                                            boxShadow: '0 16px 40px -15px rgba(0,0,0,0.2)',
-                                            border: '1px solid rgba(0,0,0,0.05)',
-                                            position: 'relative',
-                                        }}>
-                                        <img src="/assets/hardware.png" alt="VacantCourt hardware sensor" style={{ width: '100%', height: 'auto', display: 'block', aspectRatio: '20/9', objectFit: 'cover' }} />
-                                    </Paper>
-                                </Fade>
-                            </>
-                        }
-
-
+                            <Box sx={{ order: { xs: 2, md: 1 }, borderTop: '1px solid', borderColor: 'grey.200', pt: { xs: 6, md: 8 } }}>
+                                <Stack
+                                    direction={{ xs: 'column', md: 'row' }}
+                                    spacing={{ xs: 5, md: 4 }}
+                                    justifyContent="space-around"
+                                    alignItems={{ xs: 'center', md: 'flex-start' }}
+                                >
+                                    {whyData.map((item, i) => (
+                                        <Reveal key={item.question} delay={i * 90} y={16}>
+                                            <Box sx={{ textAlign: 'center', maxWidth: '320px' }}>
+                                                {item.icon}
+                                                <Typography variant="h6" sx={{ mt: 1.5, mb: 0.5, fontWeight: 'bold' }}>
+                                                    {item.question}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {item.answer}
+                                                </Typography>
+                                            </Box>
+                                        </Reveal>
+                                    ))}
+                                </Stack>
+                            </Box>
+                        </Box>
                     </Container>
                 </Box>
 
+                {/* MAGIC BEHIND IT */}
                 <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: '#f7f9fc' }}>
                     <Container maxWidth="lg">
-                        <Stack spacing={{ xs: 6, md: 8 }}>
-                            <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 4, md: 8 }} alignItems="center">
-                                <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
-                                    <Fade direction="left" triggerOnce><Typography variant="overline" color="secondary.main" sx={{ fontWeight: 'bold' }}>The Magic Behind It All</Typography><Typography variant="h3" sx={{ mt: 1, mb: 2, fontWeight: 'bold', fontSize: { xs: '2rem', md: '2.5rem' } }}>Real-Time, For Real.</Typography><Typography variant="body1" color="text.secondary" sx={{ maxWidth: '500px', mx: { xs: 'auto', md: 0 } }}>We don't rely on users checking in. Our custom-built hardware uses computer vision to detect if a court is occupied. This means the status you see is the real status, right now.</Typography></Fade>
-                                </Box>
-                                <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-                                    <Fade direction="right" triggerOnce><Paper elevation={4} sx={{ p: { xs: 3, md: 4 }, borderRadius: '16px', textAlign: 'center', width: '100%', maxWidth: '400px' }}><MemoryIcon sx={{ fontSize: { xs: 50, md: 60 }, color: 'secondary.main', mb: 2 }} /><Typography variant="h6" sx={{ fontWeight: 'bold' }}>The VC-Sensor 1.0</Typography><Typography variant="body2" color="text.secondary">A low-power, non-intrusive device installed at partner facilities provides ground-truth data.</Typography></Paper></Fade>
-                                </Box>
-                            </Stack>
+                        <Stack direction={{ xs: 'column', md: 'row' }} spacing={{ xs: 4, md: 8 }} alignItems="center">
+                            <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+                                <Reveal>
+                                    <Typography variant="overline" color="secondary.main" sx={{ fontWeight: 'bold', letterSpacing: '0.15em' }}>
+                                        The Magic Behind It All
+                                    </Typography>
+                                </Reveal>
+                                <Reveal delay={80}>
+                                    <Typography variant="h3" sx={{ mt: 1, mb: 2, fontWeight: 'bold', fontSize: { xs: '2rem', md: '2.5rem' }, letterSpacing: '-0.02em' }}>
+                                        Real-Time, For Real.
+                                    </Typography>
+                                </Reveal>
+                                <Reveal delay={160}>
+                                    <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '500px', mx: { xs: 'auto', md: 0 } }}>
+                                        We don't rely on users checking in. Our custom-built hardware uses computer vision to detect if a court is occupied. This means the status you see is the real status, right now.
+                                    </Typography>
+                                </Reveal>
+                            </Box>
+                            <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+                                <Reveal delay={isMobile ? 0 : 200} y={20}>
+                                    <SpotlightCard
+                                        variant="elevation"
+                                        elevation={2}
+                                        sx={{
+                                            p: { xs: 3, md: 4 },
+                                            borderRadius: '16px',
+                                            textAlign: 'center',
+                                            width: '100%',
+                                            maxWidth: '400px',
+                                            border: '1px solid rgba(0,0,0,0.06)',
+                                        }}
+                                    >
+                                        <MemoryIcon sx={{ fontSize: { xs: 50, md: 60 }, color: 'secondary.main', mb: 2 }} />
+                                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>The VC-Sensor 1.0</Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            A low-power, non-intrusive device installed at partner facilities provides ground-truth data.
+                                        </Typography>
+                                    </SpotlightCard>
+                                </Reveal>
+                            </Box>
                         </Stack>
                     </Container>
                 </Box>
 
+                {/* FEATURES */}
                 <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: 'background.paper' }}>
                     <Container maxWidth="lg">
-                        <Fade direction="up" triggerOnce>
-                            <Typography variant="h3" sx={{ textAlign: 'center', mb: { xs: 4, md: 6 }, fontWeight: 'bold', fontSize: { xs: '2rem', md: '2.5rem' } }}>
+                        <Reveal>
+                            <Typography
+                                variant="h3"
+                                sx={{
+                                    textAlign: 'center',
+                                    mb: { xs: 4, md: 6 },
+                                    fontWeight: 'bold',
+                                    fontSize: { xs: '2rem', md: '2.5rem' },
+                                    letterSpacing: '-0.02em',
+                                }}
+                            >
                                 Everything You Need to Play More
                             </Typography>
-                        </Fade>
+                        </Reveal>
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={4} justifyContent="center" alignItems={{ xs: 'center', sm: 'stretch' }}>
-                            <Fade direction="up" triggerOnce cascade damping={0.3}>
-                                {[{
-                                    icon: <SearchIcon color="primary" sx={{ fontSize: 40 }} />,
-                                    title: 'Find & Filter',
-                                    desc: 'Quickly search for courts in your area. Filter by type, distance, and availability to find the perfect spot.'
-                                }, {
-                                    icon: <NotificationsActiveIcon color="primary" sx={{ fontSize: 40 }} />,
-                                    title: 'Instant Alerts',
-                                    desc: 'Don’t see an open court? Subscribe to get an email notification the second it becomes available.'
-                                }, {
-                                    icon: <SportsTennisIcon color="primary" sx={{ fontSize: 40 }} />,
-                                    title: 'For Players, By Players',
-                                    desc: 'Built by and for the community to solve the one problem we all share: waiting.'
-                                }].map(item => (
-                                    <Paper key={item.title} variant="outlined" sx={{ p: 3, textAlign: 'center', borderRadius: '16px', flex: 1, maxWidth: '350px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start' }}>
+                            {featureData.map((item, i) => (
+                                <Reveal key={item.title} delay={i * 100} y={18}>
+                                    <SpotlightCard
+                                        variant="outlined"
+                                        sx={{
+                                            p: 3,
+                                            textAlign: 'center',
+                                            borderRadius: '16px',
+                                            flex: 1,
+                                            maxWidth: '350px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            justifyContent: 'flex-start',
+                                            height: '100%',
+                                        }}
+                                    >
                                         {item.icon}
                                         <Typography variant="h6" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>{item.title}</Typography>
                                         <Typography variant="body2" color="text.secondary">{item.desc}</Typography>
-                                    </Paper>
-                                ))}
-                            </Fade>
+                                    </SpotlightCard>
+                                </Reveal>
+                            ))}
                         </Stack>
                     </Container>
                 </Box>
 
+                {/* CTA */}
                 <Box sx={{ bgcolor: 'primary.main', color: 'white', py: { xs: 8, md: 12 }, textAlign: 'center' }}>
-                    <Container maxWidth="md"><Fade direction="up" triggerOnce><Typography variant="h2" sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 800 }}>Ready to Find Your <i> Vacant</i> Court?</Typography><Typography sx={{ my: 3, mx: 'auto', maxWidth: '600px', color: 'grey.300' }}>Spend less time waiting and more time playing. It's free to use and always will be for players.</Typography><Button variant="contained" size="large" onClick={() => navigate('/dashboard')} color="secondary" sx={{ borderRadius: '999px', px: 5, py: 1.5, fontWeight: 'bold', fontSize: '1.1rem', textTransform: 'none', bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'grey.200' } }}>Start Searching Now</Button></Fade></Container>
+                    <Container maxWidth="md">
+                        <Reveal>
+                            <Typography variant="h2" sx={{ fontSize: { xs: '2.2rem', sm: '3rem' }, fontWeight: 800, letterSpacing: '-0.02em' }}>
+                                Ready to Find Your <i>Vacant</i> Court?
+                            </Typography>
+                        </Reveal>
+                        <Reveal delay={100}>
+                            <Typography sx={{ my: 3, mx: 'auto', maxWidth: '600px', color: 'grey.300' }}>
+                                Spend less time waiting and more time playing. It's free to use and always will be for players.
+                            </Typography>
+                        </Reveal>
+                        <Reveal delay={180}>
+                            <Button
+                                variant="contained"
+                                size="large"
+                                onClick={() => navigate('/dashboard')}
+                                color="secondary"
+                                sx={{
+                                    borderRadius: '999px',
+                                    px: 5,
+                                    py: 1.5,
+                                    fontWeight: 'bold',
+                                    fontSize: '1.1rem',
+                                    textTransform: 'none',
+                                    bgcolor: 'white',
+                                    color: 'primary.main',
+                                    transition: `box-shadow 250ms ${EASE_OUT_EXPO}`,
+                                    '&:hover': {
+                                        bgcolor: 'grey.100',
+                                        boxShadow: '0 8px 20px -8px rgba(0,0,0,0.3)',
+                                    },
+                                }}
+                            >
+                                Start Searching Now
+                            </Button>
+                        </Reveal>
+                    </Container>
                 </Box>
             </Box>
         </>
