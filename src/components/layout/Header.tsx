@@ -1,244 +1,254 @@
 import { useState, MouseEvent } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import AddCourt from '../courts/AddCourt';
+import { Link as RouterLink, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-    Button,
-    CircularProgress,
+    AppBar,
+    Avatar,
     Box,
-    Menu,
-    MenuItem,
-    ListItemIcon,
-    ListItemText,
-    Tooltip,
+    Button,
+    ButtonBase,
+    Container,
     Divider,
     IconButton,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
+    Stack,
+    Toolbar,
     Typography,
-    alpha,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import LoginIcon from '@mui/icons-material/Login';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import SettingsIcon from '@mui/icons-material/Settings';
-import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import MenuIcon from '@mui/icons-material/Menu';
-import InfoIcon from '@mui/icons-material/Info';
-import ContactMailIcon from '@mui/icons-material/ContactMail';
-import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
-import GavelIcon from '@mui/icons-material/Gavel';
-
-import '../../styles/layout/Header.css';
-import { useAuth } from '../auth/AuthContext';
+import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import LogoutIcon from '@mui/icons-material/Logout';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import toast from 'react-hot-toast';
 
-function Header() {
+import AddCourt from '../courts/AddCourt';
+import Logo from '../brand/Logo';
+import { useAuth } from '../auth/AuthContext';
+
+interface HeaderProps {
+    variant?: 'app' | 'marketing';
+}
+
+const marketingLinks = [
+    { label: 'How it works', href: '#how-it-works' },
+    { label: 'Courts', href: '#courts' },
+    { label: 'Questions', href: '#faq' },
+];
+
+const navLinkSx = {
+    px: 1.25,
+    py: 0.75,
+    fontSize: '0.9375rem',
+    fontWeight: 600,
+    color: 'inherit',
+    opacity: 0.8,
+    '&:hover, &.active': { opacity: 1, textDecoration: 'underline', textUnderlineOffset: '6px', textDecorationThickness: '1px' },
+};
+
+function Header({ variant = 'app' }: HeaderProps) {
     const [openAddCourt, setOpenAddCourt] = useState(false);
-    const { currentUser, logout, isLoading: authIsLoading } = useAuth();
+    const { currentUser, logout, isLoading } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
-
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
     const menuOpen = Boolean(anchorEl);
+    const isMarketing = variant === 'marketing';
 
-    const handleOpenAddCourt = () => {
-        if (!currentUser) {
-            toast.error("Please log in to add a court.");
-            navigate('/auth', { state: { from: location } });
-        } else {
-            setOpenAddCourt(true);
-        }
-    };
+    const openMenu = (event: MouseEvent<HTMLElement>) => setAnchorEl(event.currentTarget);
+    const closeMenu = () => setAnchorEl(null);
 
-    const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
-        setAnchorEl(event.currentTarget);
-    };
-
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-
-    const handleSettings = () => {
-        navigate('/account');
-        handleMenuClose();
-    };
+    const goToAuth = () => navigate('/auth', { state: { from: location } });
 
     const handleLogout = async () => {
-        handleMenuClose();
+        closeMenu();
         try {
             await logout();
-            toast.success("Logged out successfully");
-            navigate('/auth', { state: { from: location } });
+            toast.success('Signed out');
+            navigate('/');
         } catch (error) {
-            toast.error('Failed to log out, please try again');
-            console.error("Logout error:", error);
+            toast.error('Sign out failed. Try again.');
+            console.error('Logout error:', error);
         }
+    };
+
+    const initials = (currentUser?.displayName || currentUser?.email || '?')
+        .split(/[\s@]/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(part => part[0]?.toUpperCase())
+        .join('');
+
+    const renderActions = () => {
+        if (isLoading) {
+            return <Box sx={{ width: 120, height: 36 }} />;
+        }
+
+        if (!currentUser) {
+            return (
+                <Stack direction="row" spacing={1} alignItems="center">
+                    <Button
+                        variant={isMarketing ? 'text' : 'outlined'}
+                        color="inherit"
+                        onClick={goToAuth}
+                        sx={isMarketing ? { color: 'inherit', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } } : undefined}
+                    >
+                        Sign in
+                    </Button>
+                    <IconButton
+                        onClick={openMenu}
+                        aria-label="Open menu"
+                        aria-controls={menuOpen ? 'site-menu' : undefined}
+                        aria-haspopup="true"
+                        sx={{ display: { xs: isMarketing ? 'none' : 'inline-flex', sm: 'none' } }}
+                    >
+                        <MenuIcon />
+                    </IconButton>
+                </Stack>
+            );
+        }
+
+        return (
+            <Stack direction="row" spacing={1} alignItems="center">
+                {isMarketing ? (
+                    <Button
+                        component={RouterLink}
+                        to="/dashboard"
+                        sx={{ color: 'inherit', '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' } }}
+                    >
+                        Courts
+                    </Button>
+                ) : (
+                    <Button
+                        variant="outlined"
+                        onClick={() => setOpenAddCourt(true)}
+                        startIcon={<AddIcon />}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                    >
+                        Add court
+                    </Button>
+                )}
+                <ButtonBase
+                    onClick={openMenu}
+                    aria-label="Account menu"
+                    aria-controls={menuOpen ? 'site-menu' : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={menuOpen ? 'true' : undefined}
+                    sx={{ borderRadius: '50%', ml: 0.5 }}
+                >
+                    <Avatar
+                        src={currentUser.photoURL || undefined}
+                        alt={currentUser.displayName || 'Account'}
+                        sx={{
+                            width: 36,
+                            height: 36,
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            bgcolor: 'primary.main',
+                            border: '2px solid',
+                            borderColor: isMarketing ? 'common.white' : 'divider',
+                        }}
+                    >
+                        {initials}
+                    </Avatar>
+                </ButtonBase>
+            </Stack>
+        );
     };
 
     return (
-        <header className="app-header">
-            <div className="header-container">
-                <nav className='main-nav'>
-                    <Link to="/dashboard" className="logo-link">
-                        <img src='/ground.png' alt="Vacant Court Logo" className="header-logo-img" />
-                        <span className="header-logo-text">Vacant Court</span>
-                    </Link>
-                </nav>
+        <AppBar
+            position={isMarketing ? 'static' : 'sticky'}
+            sx={isMarketing
+                ? { bgcolor: 'transparent', color: 'common.white' }
+                : { top: 0, bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider', color: 'text.primary' }}
+        >
+            <Container maxWidth="lg">
+                <Toolbar disableGutters sx={{ minHeight: { xs: 60, sm: 64 }, gap: 3 }}>
+                    <Box component={RouterLink} to="/" aria-label="VacantCourt home" sx={{ display: 'inline-flex', borderRadius: 1 }}>
+                        <Logo size={28} inverted={isMarketing} />
+                    </Box>
 
-                <Box className="header-actions" sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    {authIsLoading ? (
-                        <CircularProgress size={24} color="inherit" />
-                    ) : (
-                        <>
-                            {currentUser && (
-                                <Button
-                                    variant="contained"
-                                    onClick={handleOpenAddCourt}
-                                    startIcon={<AddIcon />}
-                                    sx={{
-                                        bgcolor: 'white',
-                                        color: 'primary.main',
-                                        '&:hover': { bgcolor: 'grey.100' },
-                                    }}
-                                >
-                                    Add Court
-                                </Button>
+                    <Stack direction="row" spacing={0.5} sx={{ display: { xs: 'none', md: 'flex' }, flexGrow: 1 }}>
+                        {isMarketing
+                            ? marketingLinks.map(link => (
+                                <Box key={link.href} component="a" href={link.href} sx={navLinkSx}>
+                                    {link.label}
+                                </Box>
+                            ))
+                            : (
+                                <Box component={NavLink} to="/dashboard" sx={navLinkSx}>
+                                    Courts
+                                </Box>
                             )}
+                    </Stack>
+                    <Box sx={{ flexGrow: 1, display: { xs: 'block', md: 'none' } }} />
 
-                            {!currentUser && (
-                                <Button
-                                    variant="contained"
-                                    onClick={() => navigate('/auth', { state: { from: location } })}
-                                    startIcon={<LoginIcon />}
-                                    sx={{
-                                        bgcolor: 'white',
-                                        color: 'primary.main',
-                                        '&:hover': { bgcolor: 'grey.100' },
-                                    }}
-                                >
-                                    Login / Sign Up
-                                </Button>
-                            )}
+                    {renderActions()}
+                </Toolbar>
+            </Container>
 
-                            {currentUser ? (
-                                <Tooltip title="Account" arrow>
-                                    <Box
-                                        onClick={handleMenuOpen}
-                                        aria-controls={menuOpen ? 'account-menu' : undefined}
-                                        aria-haspopup="true"
-                                        aria-expanded={menuOpen ? 'true' : undefined}
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '12px',
-                                            backgroundColor: 'transparent',
-                                            border: 'none',
-                                            p: '4px',
-                                            borderRadius: '50px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s ease',
-                                            boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.15)',
-                                            '&:hover': {
-                                                backgroundColor: (theme) => alpha(theme.palette.common.white, 0.1),
-                                                boxShadow: (theme) => `0 0 0 1px ${alpha(theme.palette.primary.light, 0.8)}`,
-                                            }
-                                        }}
-                                    >
-                                        <Box sx={{
-                                            width: 40,
-                                            height: 40,
-                                            borderRadius: '50%',
-                                            overflow: 'hidden',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            border: (theme) => `2px solid ${theme.palette.primary.light}`,
-                                        }}>
-                                            {currentUser.photoURL ? (
-                                                <Box component="img" src={currentUser.photoURL} alt="Profile" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            ) : (
-                                                <AccountCircleIcon sx={{ fontSize: '40px', color: 'white' }} />
-                                            )}
-                                        </Box>
-                                        <Box sx={{
-                                            display: { xs: 'none', sm: 'flex' },
-                                            flexDirection: 'column',
-                                            alignItems: 'flex-start',
-                                            color: 'white'
-                                        }}>
-                                            <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, lineHeight: 1.2 }}>
-                                                {currentUser.displayName || 'User'}
-                                            </Typography>
-                                            <Typography sx={{ fontSize: '0.75rem', opacity: 0.8, lineHeight: 1.2, marginRight: '5px' }}>
-                                                {currentUser.email}
-                                            </Typography>
-                                        </Box>
-                                    </Box>
-                                </Tooltip>
-                            ) : (
-                                <Tooltip title="Menu" arrow>
-                                    <IconButton
-                                        onClick={handleMenuOpen}
-                                        size="large"
-                                        sx={{ color: 'white' }}
-                                    >
-                                        <MenuIcon sx={{ fontSize: '2rem' }} />
-                                    </IconButton>
-                                </Tooltip>
-                            )}
+            <Menu
+                id="site-menu"
+                anchorEl={anchorEl}
+                open={menuOpen}
+                onClose={closeMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                {currentUser && (
+                    <Box sx={{ px: 1.5, pt: 1, pb: 1.5 }}>
+                        <Typography variant="subtitle2" noWrap>
+                            {currentUser.displayName || 'Your account'}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap component="div">
+                            {currentUser.email}
+                        </Typography>
+                    </Box>
+                )}
+                {currentUser && <Divider sx={{ my: 0.5 }} />}
+                {currentUser && (
+                    <MenuItem onClick={() => { closeMenu(); setOpenAddCourt(true); }} sx={{ display: { sm: 'none' } }}>
+                        <ListItemIcon><AddIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Add court</ListItemText>
+                    </MenuItem>
+                )}
+                {currentUser && (
+                    <MenuItem component={RouterLink} to="/account/profile" onClick={closeMenu}>
+                        <ListItemIcon><SettingsOutlinedIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Account settings</ListItemText>
+                    </MenuItem>
+                )}
+                {currentUser && (
+                    <MenuItem component={RouterLink} to="/account/subscriptions" onClick={closeMenu}>
+                        <ListItemIcon><NotificationsNoneIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Court alerts</ListItemText>
+                    </MenuItem>
+                )}
+                {currentUser && <Divider sx={{ my: 0.5 }} />}
+                <MenuItem component={RouterLink} to="/privacy" onClick={closeMenu}>
+                    <ListItemIcon><ShieldOutlinedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Privacy policy</ListItemText>
+                </MenuItem>
+                <MenuItem component={RouterLink} to="/tos" onClick={closeMenu}>
+                    <ListItemIcon><DescriptionOutlinedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Terms of service</ListItemText>
+                </MenuItem>
+                {currentUser && <Divider sx={{ my: 0.5 }} />}
+                {currentUser && (
+                    <MenuItem onClick={handleLogout}>
+                        <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Sign out</ListItemText>
+                    </MenuItem>
+                )}
+            </Menu>
 
-                            <Menu
-                                id="account-menu"
-                                anchorEl={anchorEl}
-                                open={menuOpen}
-                                onClose={handleMenuClose}
-                                MenuListProps={{ 'aria-labelledby': 'account-button' }}
-                                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                            >
-                                <MenuItem component={Link} to="/about" onClick={handleMenuClose}>
-                                    <ListItemIcon><InfoIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText>About</ListItemText>
-                                </MenuItem>
-                                <MenuItem component={Link} to="/contact" onClick={handleMenuClose}>
-                                    <ListItemIcon><ContactMailIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText>Contact</ListItemText>
-                                </MenuItem>
-
-                                <Divider sx={{ my: 0.5 }} />
-
-                                <MenuItem component={Link} to="/privacy" onClick={handleMenuClose}>
-                                    <ListItemIcon><PrivacyTipIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText>Privacy Policy</ListItemText>
-                                </MenuItem>
-                                <MenuItem component={Link} to="/tos" onClick={handleMenuClose}>
-                                    <ListItemIcon><GavelIcon fontSize="small" /></ListItemIcon>
-                                    <ListItemText>Terms of Service</ListItemText>
-                                </MenuItem>
-
-                                {currentUser && <Divider sx={{ my: 0.5 }} />}
-
-                                {currentUser && (
-                                    <MenuItem onClick={handleSettings}>
-                                        <ListItemIcon><SettingsIcon fontSize="small" /></ListItemIcon>
-                                        <ListItemText>Account Settings</ListItemText>
-                                    </MenuItem>
-                                )}
-                                {currentUser && (
-                                    <MenuItem onClick={handleLogout}>
-                                        <ListItemIcon><ExitToAppIcon fontSize="small" /></ListItemIcon>
-                                        <ListItemText>Log Out</ListItemText>
-                                    </MenuItem>
-                                )}
-                            </Menu>
-                        </>
-                    )}
-                </Box>
-            </div>
-
-            <AddCourt
-                open={openAddCourt}
-                onClose={() => setOpenAddCourt(false)}
-            />
-        </header>
+            {currentUser && <AddCourt open={openAddCourt} onClose={() => setOpenAddCourt(false)} />}
+        </AppBar>
     );
 }
 

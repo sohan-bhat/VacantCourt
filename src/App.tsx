@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, Outlet, useMatch } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useMatch } from 'react-router-dom';
 import Dashboard from './components/dashboard/Dashboard';
 import CourtDetails from './components/courts/CourtDetails';
 import Header from './components/layout/Header';
@@ -14,27 +14,24 @@ import AccountPage from './components/account/AccountPage';
 import ProfileSettings from './components/account/ProfileSettings';
 import SubscriptionManager from './components/account/SubscriptionManager';
 import SplashPage from './components/pages/SplashPage';
+import { tokens } from './theme';
 
 const AppContent: React.FC = () => {
-    const location = useLocation();
+    const onSplashPage = useMatch({ path: "/", end: true });
+    const onAuthPage = useMatch("/auth");
+    const onPrivacyPolicy = useMatch("/privacy");
+    const onTermsOfService = useMatch("/tos");
+    const onLegalPage = onPrivacyPolicy || onTermsOfService;
 
-    const onSplashPage = useMatch({ path: "/", end: true })
-    const onDashboard = useMatch("/dashboard");
-    const onCourtDetails = useMatch("/court/:id");
-    const onPrivacyPolicy = useMatch("/privacy")
-    const onTermsOfService = useMatch("/tos")
-
-    const onAccountPage = useMatch("/account/*");
-
-    const showHeaderAndFooter = !!(onDashboard || onCourtDetails || onPrivacyPolicy || onTermsOfService) && !onAccountPage;
-
-    const mainContentClass = onAccountPage || onSplashPage || onTermsOfService || onPrivacyPolicy ? 'app-content full-width-content' : `app-content ${location.pathname === '/auth' ? 'auth-page-content' : ''}`;
+    // The splash page renders its own marketing header; auth has a standalone layout.
+    const showHeaderAndFooter = !onSplashPage && !onAuthPage;
+    const isFullWidth = onSplashPage || onAuthPage || onLegalPage;
 
     return (
         <div className="app-container">
             {showHeaderAndFooter && <Header />}
 
-            <main className={mainContentClass}>
+            <main className={isFullWidth ? 'app-content full-width-content' : 'app-content'}>
                 <Routes>
                     <Route path="/" element={<SplashPage />} />
                     <Route path="/dashboard" element={<Dashboard />} />
@@ -65,14 +62,23 @@ function App() {
         <Router>
             <AppContent />
             <Toaster
-                position="top-center"
+                position="bottom-center"
                 toastOptions={{
                     duration: 3000,
+                    style: {
+                        background: tokens.ink,
+                        color: '#fff',
+                        fontFamily: tokens.fontDisplay,
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        borderRadius: 10,
+                        padding: '10px 14px',
+                    },
                     success: {
-                        iconTheme: { primary: 'green', secondary: 'white' },
+                        iconTheme: { primary: '#2BD17E', secondary: tokens.ink },
                     },
                     error: {
-                        iconTheme: { primary: 'red', secondary: 'white' },
+                        iconTheme: { primary: '#FF7A6E', secondary: tokens.ink },
                     },
                 }}
             />

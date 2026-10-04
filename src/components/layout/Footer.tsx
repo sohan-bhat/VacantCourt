@@ -1,38 +1,43 @@
-import { Box, Container, Typography, Stack, Link, Divider } from '@mui/material';
+import { Box, Container, Link, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
+
+const links = [
+    { label: 'Courts', to: '/dashboard' },
+    { label: 'Privacy', to: '/privacy' },
+    { label: 'Terms', to: '/tos' },
+];
 
 function Footer() {
     return (
-        <Box component="footer" sx={{ bgcolor: 'primary.main', color: 'white', pt: 4, pb: 3, mt: 'auto' }}>
+        <Box component="footer" sx={{ bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider', mt: 'auto' }}>
             <Container maxWidth="lg">
                 <Stack
-                    direction={{ xs: 'column', md: 'row' }}
+                    direction={{ xs: 'column', sm: 'row' }}
                     justifyContent="space-between"
-                    alignItems={{ xs: 'center', md: 'flex-start' }}
-                    spacing={3}
+                    alignItems={{ xs: 'flex-start', sm: 'center' }}
+                    spacing={2}
+                    sx={{ py: 4 }}
                 >
-                    <Stack direction="row" alignItems="center" spacing={1}>
-                        <img src="/ground.png" alt="VacantCourt" style={{ height: 28 }} />
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                            VacantCourt
-                        </Typography>
-                    </Stack>
-
-                    <Stack direction="row" spacing={3}>
-                        <Link component={RouterLink} to="/privacy" color="inherit" underline="hover" variant="body2">
-                            Privacy Policy
-                        </Link>
-                        <Link component={RouterLink} to="/tos" color="inherit" underline="hover" variant="body2">
-                            Terms of Service
+                    <Typography variant="body2" color="text.secondary">
+                        &copy; {new Date().getFullYear()} VacantCourt
+                    </Typography>
+                    <Stack direction="row" spacing={3} flexWrap="wrap" useFlexGap>
+                        {links.map(link => (
+                            <Link key={link.to} component={RouterLink} to={link.to} variant="body2" color="text.secondary">
+                                {link.label}
+                            </Link>
+                        ))}
+                        <Link
+                            href="mailto:officialvacantcourt@gmail.com"
+                            variant="body2"
+                            color="text.secondary"
+                            underline="always"
+                            sx={{ textDecorationStyle: 'wavy', textUnderlineOffset: '5px', textDecorationThickness: '1px' }}
+                        >
+                            officialvacantcourt@gmail.com
                         </Link>
                     </Stack>
                 </Stack>
-
-                <Divider sx={{ my: 2, borderColor: 'rgba(255,255,255,0.15)' }} />
-
-                <Typography variant="body2" sx={{ textAlign: 'center', opacity: 0.7 }}>
-                    &copy; {new Date().getFullYear()} VacantCourt. All rights reserved.
-                </Typography>
             </Container>
         </Box>
     );
