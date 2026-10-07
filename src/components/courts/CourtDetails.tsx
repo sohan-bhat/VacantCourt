@@ -1,122 +1,104 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import CourtSchedule from './CourtSchedule';
-import TransferOwnershipDialog from '../dialog/TransferOwnershipDialog';
-import { Court, subscribeToCourtById } from '../../data/courtData';
-import EditCourt from './EditCourt';
-import '../../styles/courts/CourtDetails.css';
+import { useState, useEffect, MouseEvent } from 'react';
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
-    CircularProgress,
-    IconButton,
+    Alert,
     Box,
-    Typography,
-    Paper,
-    Tabs,
-    Tab,
-    Grid,
-    List,
-    ListItem,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Divider,
+    IconButton,
     ListItemIcon,
     ListItemText,
-    Button,
-    useTheme,
-    useMediaQuery,
-    Grow,
-    alpha
+    Menu,
+    MenuItem,
+    Paper,
+    Skeleton,
+    Stack,
+    Typography,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+import { alpha } from '@mui/material/styles';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import PhoneIcon from '@mui/icons-material/Phone';
+import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import PlaceIcon from '@mui/icons-material/Place';
-import DirectionsIcon from '@mui/icons-material/Directions';
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
+import DirectionsOutlinedIcon from '@mui/icons-material/DirectionsOutlined';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CheckIcon from '@mui/icons-material/Check';
+import toast from 'react-hot-toast';
+
+import CourtSchedule from './CourtSchedule';
+import EditCourt from './EditCourt';
+import TransferOwnershipDialog from '../dialog/TransferOwnershipDialog';
+import { NotificationButton } from './CourtCard';
+import { Court, subscribeToCourtById } from '../../data/courtData';
 import { useAuth } from '../auth/AuthContext';
 import { deleteDocument } from '../../services/firestoreService';
-import { useNavigate } from 'react-router-dom';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import {
-    Dialog as ConfirmationDialog,
-    DialogActions as ConfirmationDialogActions,
-    DialogContent as ConfirmationDialogContent,
-    DialogContentText as ConfirmationDialogContentText,
-    DialogTitle as ConfirmationDialogTitle,
-} from '@mui/material';
-import toast from 'react-hot-toast';
 import PageMeta from '../layout/PageMeta';
+import StatusPill from '../brand/StatusPill';
+import { STALE_THRESHOLD_SECONDS, formatAgo, secondsSince } from '../brand/status';
+import { tokens } from '../../theme';
 
-
-
-interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
-    isMobile: boolean;
+function SectionHeading({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
+    return (
+        <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={2} sx={{ mb: 2 }}>
+            <Typography variant="h6" component="h2">{children}</Typography>
+            {aside}
+        </Stack>
+    );
 }
 
-function TabPanel(props: TabPanelProps) {
-    const { children, value, index, isMobile, ...other } = props;
-
-    if (isMobile) {
-        return (
-            <div
-                role="tabpanel"
-                hidden={value !== index}
-                id={`simple-tabpanel-${index}`}
-                aria-labelledby={`simple-tab-${index}`}
-                {...other}
-            >
-                {value === index && (
-                    <Box sx={{ p: 0 }}>
-                        {children}
-                    </Box>
-                )}
-            </div>
-        );
-    }
-    return <Box sx={{ p: 0 }}>{children}</Box>;
+function useSecondsSince(timestamp: number | undefined) {
+    const [age, setAge] = useState(() => secondsSince(timestamp ?? null));
+    useEffect(() => {
+        setAge(secondsSince(timestamp ?? null));
+        const id = setInterval(() => setAge(secondsSince(timestamp ?? null)), 5000);
+        return () => clearInterval(id);
+    }, [timestamp]);
+    return age;
 }
 
-function a11yProps(index: number) {
-    return {
-        id: `simple-tab-${index}`,
-        'aria-controls': `simple-tabpanel-${index}`,
-    };
+function DetailsSkeleton() {
+    return (
+        <Box>
+            <Skeleton variant="text" width={120} height={22} />
+            <Skeleton variant="text" width="50%" height={52} sx={{ mt: 2 }} />
+            <Skeleton variant="text" width="30%" height={24} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mt: 4 }}>
+                <Skeleton variant="rounded" height={320} sx={{ borderRadius: '10px' }} />
+                <Skeleton variant="rounded" height={260} sx={{ borderRadius: '10px' }} />
+            </Box>
+        </Box>
+    );
 }
-
 
 function CourtDetails() {
     const { currentUser } = useAuth();
     const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const [courtDetails, setCourtDetails] = useState<Court | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState(0);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
     const [editModalOpen, setEditModalOpen] = useState(false);
+    const [isTransferDialogOpen, setTransferDialogOpen] = useState(false);
+    const [manageAnchor, setManageAnchor] = useState<null | HTMLElement>(null);
 
-    const theme = useTheme();
-    const isMobileView = useMediaQuery(theme.breakpoints.down('md'));
-
-    const imagePanelRef = useRef<HTMLDivElement>(null);
-    const detailsPanelRef = useRef<HTMLDivElement>(null);
-    const [panelsMinHeight, setPanelsMinHeight] = useState<number | 'auto'>('auto');
-
-    const [court, setCourt] = useState<Court | null>(null);
-    const [isTransferDialogOpen, setTransferDialogOpen] = useState(false); // <-- ADD STATE
-
-    const navigate = useNavigate();
+    const age = useSecondsSince(courtDetails?.lastUpdatedStatus);
 
     useEffect(() => {
         if (!id) {
             setLoading(false);
-            setError("Court ID is missing.");
+            setError('This link is missing a court ID.');
             setCourtDetails(null);
             return;
         }
@@ -130,406 +112,381 @@ function CourtDetails() {
                 setLoading(false);
             },
             (err) => {
-                console.error("Failed to subscribe to court details:", err);
-                setError("Failed to load court details. Please try again.");
+                console.error('Failed to subscribe to court details:', err);
+                setError('We couldn’t load this facility. Check your connection and reload.');
                 setLoading(false);
             }
         );
-        return () => {
-            unsubscribe();
-        };
+        return () => unsubscribe();
     }, [id]);
 
     useEffect(() => {
-        if (courtDetails && courtDetails.images && courtDetails.images.length > 0) {
-            if (selectedImageIndex >= courtDetails.images.length) {
-                setSelectedImageIndex(0);
-            }
-        } else {
-            setSelectedImageIndex(0);
-        }
+        const count = courtDetails?.images?.length ?? 0;
+        if (selectedImageIndex >= count && selectedImageIndex !== 0) setSelectedImageIndex(0);
     }, [courtDetails, selectedImageIndex]);
 
+    const isOwner = !!(currentUser && courtDetails && currentUser.uid === courtDetails.ownerId);
 
-    useEffect(() => {
-        if (!isMobileView && imagePanelRef.current && detailsPanelRef.current) {
-            const imageHeight = imagePanelRef.current.scrollHeight;
-            const detailsHeight = detailsPanelRef.current.scrollHeight;
-            setPanelsMinHeight(Math.max(imageHeight, detailsHeight));
-        } else {
-            setPanelsMinHeight('auto');
-        }
-    }, [courtDetails, isMobileView, activeTab]);
-
-    const isOwner = currentUser && courtDetails && currentUser.uid === courtDetails.ownerId;
-
-    const handleOpenEditModal = () => {
-        if (!isOwner) {
-            toast.error("You are not authorized to edit this facility.");
-            return;
-        }
-        setEditModalOpen(true);
-    };
-
-
-    const handleCloseEditModal = () => {
-        setEditModalOpen(false);
-    };
-
-    const handleOpenDeleteConfirm = () => {
-        if (!isOwner) {
-            toast.error("You are not authorized to delete this facility.");
-            return;
-        }
-        setDeleteConfirmOpen(true);
-    };
-
-    const handleCloseDeleteConfirm = () => {
-        setDeleteConfirmOpen(false);
-    };
+    const openManageMenu = (event: MouseEvent<HTMLElement>) => setManageAnchor(event.currentTarget);
+    const closeManageMenu = () => setManageAnchor(null);
 
     const handleDeleteCourt = async () => {
         if (!isOwner || !courtDetails || !id) {
-            toast.error("Cannot delete facility. Authorization or data missing.");
+            toast.error('Only the facility owner can delete it.');
             setDeleteConfirmOpen(false);
             return;
         }
         try {
             await deleteDocument('Courts', id);
-            toast.success('Facility deleted successfully.');
+            toast.success('Facility deleted');
             navigate('/dashboard');
-        } catch (error) {
-            console.error("Error deleting facility:", error);
-            toast.error('Failed to delete facility. Please try again.');
+        } catch (err) {
+            console.error('Error deleting facility:', err);
+            toast.error('Couldn’t delete the facility. Try again.');
         } finally {
             setDeleteConfirmOpen(false);
         }
     };
 
-    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-        setActiveTab(newValue);
-    };
-
     const handleImageNav = (direction: 'prev' | 'next') => {
-        if (!courtDetails?.images || courtDetails.images.length === 0) return;
-        const totalImages = courtDetails.images.length;
-        if (direction === 'next') {
-            setSelectedImageIndex((prevIndex) => (prevIndex + 1) % totalImages);
-        } else {
-            setSelectedImageIndex((prevIndex) => (prevIndex - 1 + totalImages) % totalImages);
-        }
+        const total = courtDetails?.images?.length ?? 0;
+        if (!total) return;
+        setSelectedImageIndex(prev => (direction === 'next' ? (prev + 1) % total : (prev - 1 + total) % total));
     };
 
     const getDirectionsLink = () => {
         if (courtDetails?.address) {
             return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(courtDetails.address)}`;
-        } else if (courtDetails?.latitude && courtDetails?.longitude) {
+        }
+        if (courtDetails?.latitude && courtDetails?.longitude) {
             return `https://www.google.com/maps/dir/?api=1&destination=${courtDetails.latitude},${courtDetails.longitude}`;
         }
-        return '#';
+        return undefined;
     };
 
+    const backLink = (
+        <Button
+            component={RouterLink}
+            to="/dashboard"
+            startIcon={<ArrowBackIcon />}
+            size="small"
+            sx={{ color: 'text.secondary', ml: -1, mb: 2, '&:hover': { color: 'text.primary', bgcolor: 'transparent' } }}
+        >
+            All courts
+        </Button>
+    );
 
     if (loading) {
-        return (<>
-            <PageMeta title="Loading Court..." />
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <CircularProgress />
-            </Box>
-        </>);
+        return (
+            <>
+                <PageMeta title="Loading court" />
+                <DetailsSkeleton />
+            </>
+        );
     }
-    if (error) {
-        return <Box sx={{ textAlign: 'center', mt: 4, color: 'error.main' }}>{error}</Box>;
+
+    if (error || !courtDetails) {
+        return (
+            <>
+                {backLink}
+                <Paper variant="outlined" sx={{ py: 8, px: 3, textAlign: 'center', borderRadius: '10px' }}>
+                    <Typography variant="h6" component="h1">{error ? 'Something went wrong' : 'Facility not found'}</Typography>
+                    <Typography color="text.secondary" sx={{ mt: 1 }}>
+                        {error ?? 'It may have been removed, or the link is wrong.'}
+                    </Typography>
+                    <Button component={RouterLink} to="/dashboard" variant="contained" sx={{ mt: 3 }}>Browse courts</Button>
+                </Paper>
+            </>
+        );
     }
-    if (!courtDetails) {
-        return <Box sx={{ textAlign: 'center', mt: 4, color: 'error.main' }}>Court not found or is not currently available.</Box>;
-    }
+
+    const subCourts = courtDetails.courts ?? [];
+    const configured = subCourts.filter(c => c.isConfigured);
+    const openCount = configured.filter(c => c.status === 'available').length;
+    const isStale = age !== null && age > STALE_THRESHOLD_SECONDS;
+    const hasLive = configured.length > 0;
+    const allInUse = hasLive && !isStale && openCount === 0;
+    const images = courtDetails.images ?? [];
+    const directionsLink = getDirectionsLink();
+
+    const summaryPill = !hasLive
+        ? <StatusPill status="unconfigured" label="No live status" />
+        : isStale
+            ? <StatusPill status="offline" />
+            : openCount > 0
+                ? <StatusPill status="open" label={`${openCount} of ${configured.length} open`} />
+                : <StatusPill status="in-use" label="All courts in use" />;
+
+    const infoRows = [
+        courtDetails.address && { icon: <PlaceOutlinedIcon fontSize="small" />, label: 'Address', value: courtDetails.address },
+        courtDetails.hours && { icon: <AccessTimeIcon fontSize="small" />, label: 'Hours', value: courtDetails.hours },
+        courtDetails.phone && {
+            icon: <PhoneOutlinedIcon fontSize="small" />,
+            label: 'Phone',
+            value: <Box component="a" href={`tel:${courtDetails.phone}`} sx={{ color: 'inherit', '&:hover': { color: 'primary.main' } }}>{courtDetails.phone}</Box>,
+        },
+    ].filter(Boolean) as { icon: React.ReactNode; label: string; value: React.ReactNode }[];
 
     return (
         <>
-            {courtDetails && (
-                <PageMeta
-                    title={courtDetails.name}
-                    description={`Check the status and details for the ${courtDetails.courts} courts at ${courtDetails.name}, located in ${courtDetails.location}.`}
-                />
-            )}
-            <Box className="court-details-page-container">
-                <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    mb: { xs: 2, md: 3 },
-                    gap: { xs: 1, md: 1.5 }
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, minWidth: 0 }}>
-                        <Link to="/dashboard" style={{ textDecoration: 'none' }}>
-                            <IconButton color="primary" sx={{ p: 0.5 }}>
-                                <ArrowBackIcon />
-                            </IconButton>
-                        </Link>
-                        <Typography variant={isMobileView ? "h5" : "h4"} component="h2" sx={{
-                            ml: { xs: 1, sm: 2 },
-                            color: 'primary.dark',
-                            fontWeight: 700,
-                            flexShrink: 1,
-                            minWidth: 0,
-                            wordBreak: 'break-word',
-                        }}>
-                            {courtDetails.name}
-                        </Typography>
-                        <Box sx={{
-                            ml: { xs: 1, sm: 2 },
-                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                            color: theme.palette.primary.dark,
-                            px: '8px', py: '4px',
-                            borderRadius: '16px',
-                            fontSize: isMobileView ? '0.9rem' : '1.1rem',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            border: `1px solid ${alpha(theme.palette.primary.main, 0.3)}`,
-                        }}>
-                            {courtDetails.type}
-                        </Box>
-                    </Box>
-                    {isOwner && (
-                        <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
-                            <IconButton onClick={handleOpenEditModal} color="primary" aria-label="edit court" sx={{ border: `1px solid ${theme.palette.primary.main}`, borderRadius: '8px', p: 0.75 }}>
-                                <EditIcon />
-                            </IconButton>
-                            <IconButton onClick={handleOpenDeleteConfirm} color="error" aria-label="delete court" sx={{ border: `1px solid ${theme.palette.error.main}`, borderRadius: '8px', p: 0.75 }}>
-                                <DeleteForeverIcon />
-                            </IconButton>
-                            <IconButton
-                                color="secondary"
-                                onClick={() => setTransferDialogOpen(true)}
-                                sx={{ border: `1px solid ${theme.palette.secondary.main}`, borderRadius: '8px', p: 0.75 }}
-                            >
-                                <SwapHorizIcon />
-                            </IconButton>
-                        </Box>
-                    )}
+            <PageMeta
+                title={courtDetails.name}
+                description={`Live status, hours, and directions for the ${subCourts.length} courts at ${courtDetails.name} in ${courtDetails.location}.`}
+            />
+
+            {backLink}
+
+            {/* Header */}
+            <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                justifyContent="space-between"
+                alignItems={{ xs: 'flex-start', md: 'flex-end' }}
+                spacing={2.5}
+                sx={{ mb: { xs: 3, md: 4 } }}
+            >
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography component="h1" variant="h3" sx={{ fontSize: { xs: '1.875rem', md: '2.5rem' }, wordBreak: 'break-word' }}>
+                        {courtDetails.name}
+                    </Typography>
+                    <Stack direction="row" alignItems="center" flexWrap="wrap" useFlexGap spacing={1.25} sx={{ mt: 1.5 }}>
+                        {summaryPill}
+                        <Typography variant="body2" color="text.secondary">{courtDetails.location} · {courtDetails.type}</Typography>
+                    </Stack>
                 </Box>
 
-                {isMobileView && (
-                    <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-                        <Tabs
-                            value={activeTab}
-                            onChange={handleTabChange}
-                            aria-label="court details tabs"
-                            variant="fullWidth"
-                            textColor="primary"
-                            indicatorColor="primary"
-                            sx={{
-                                '& .MuiTabs-flexContainer': {
-                                    border: `1px solid ${theme.palette.primary.main}`,
-                                    borderRadius: 1.25,
-                                    overflow: 'hidden',
-                                },
-                                '& .MuiTab-root': {
-                                    color: theme.palette.primary.main,
-                                    '&.Mui-selected': {
-                                        color: theme.palette.common.white,
-                                        backgroundColor: theme.palette.primary.main,
-                                    },
-                                    '&:not(:last-of-type)': {
-                                        borderRight: `1px solid ${theme.palette.primary.main}`,
-                                    },
-                                },
-                                '& .MuiTabs-indicator': {
-                                    display: 'none',
-                                },
-                            }}
+                <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
+                    {allInUse && <NotificationButton court={{ id: courtDetails.id, name: courtDetails.name }} variant="button" />}
+                    {directionsLink && (
+                        <Button
+                            component="a"
+                            href={directionsLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="contained"
+                            startIcon={<DirectionsOutlinedIcon />}
                         >
-                            <Tab label="Information" {...a11yProps(0)} />
-                            <Tab label="Availability" {...a11yProps(1)} />
-                        </Tabs>
-                    </Box>
-                )}
-
-                <Box sx={{
-                    display: 'flex',
-                    flexDirection: { xs: 'column', md: 'row' },
-                    gap: { xs: 2, md: 3 },
-                }}>
-                    {(!isMobileView || (isMobileView && activeTab === 0)) && (
-                        <Box sx={{ flex: { md: '1 1 50%' }, minWidth: 0 }}>
-                            <Paper elevation={3} sx={{
-                                p: 0,
-                                borderRadius: 1.25,
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                overflow: 'hidden'
-                            }}>
-                                <Box sx={{
-                                    width: '100%',
-                                    height: { xs: 200, sm: 250 },
-                                    overflow: 'hidden',
-                                    position: 'relative',
-                                    bgcolor: 'grey.200',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>
-                                    {courtDetails.images && courtDetails.images.length > 0 ? (
-                                        <>
-                                            <Grow in={true} key={selectedImageIndex}>
-                                                <img
-                                                    src={courtDetails.images[selectedImageIndex]}
-                                                    alt={`${courtDetails.name} - Image ${selectedImageIndex + 1}`}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '100%',
-                                                        objectFit: 'cover'
-                                                    }}
-                                                />
-                                            </Grow>
-                                            {courtDetails.images.length > 1 && (
-                                                <>
-                                                    <IconButton
-                                                        onClick={() => handleImageNav('prev')}
-                                                        sx={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', bgcolor: alpha(theme.palette.common.black, 0.4), color: 'white', '&:hover': { bgcolor: alpha(theme.palette.common.black, 0.6) }, p: 1, borderRadius: '50%', fontSize: '2rem' }}>
-                                                        <ChevronLeftIcon fontSize="inherit" />
-                                                    </IconButton>
-                                                    <IconButton
-                                                        onClick={() => handleImageNav('next')}
-                                                        sx={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', bgcolor: alpha(theme.palette.common.black, 0.4), color: 'white', '&:hover': { bgcolor: alpha(theme.palette.common.black, 0.6) }, p: 1, borderRadius: '50%', fontSize: '2rem' }}>
-                                                        <ChevronRightIcon fontSize="inherit" />
-                                                    </IconButton>
-                                                </>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <Typography variant="body1" color="text.secondary">No Images Available</Typography>
-                                    )}
-                                </Box>
-
-                                {courtDetails.amenities && courtDetails.amenities.length > 0 && (
-                                    <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
-                                        <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                                            Amenities
-                                        </Typography>
-                                        <Grid container spacing={1}>
-                                            {courtDetails.amenities.map((amenity, index) => (
-                                                <Grid key={index}>
-                                                    <ListItem disableGutters sx={{ py: 0.5 }}>
-                                                        <ListItemIcon sx={{ minWidth: 35, color: 'success.main' }}><CheckCircleOutlineIcon /></ListItemIcon>
-                                                        <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem' }}>{amenity}</Typography>} />
-                                                    </ListItem>
-                                                </Grid>
-                                            ))}
-                                        </Grid>
-                                    </Box>
-                                )}
-                            </Paper>
-                        </Box>
+                            Directions
+                        </Button>
                     )}
-
-                    {(!isMobileView || (isMobileView && activeTab === 0)) && (
-                        <Box sx={{ flex: { md: '1 1 50%' }, minWidth: 0 }}>
-                            <Paper elevation={3} sx={{
-                                p: { xs: 2, sm: 2.5 },
-                                borderRadius: 1.25,
-                                height: '100%',
-                                display: 'flex',
-                                flexDirection: 'column'
-                            }}>
-                                {courtDetails.description && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                                            About
-                                        </Typography>
-                                        <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', lineHeight: 1.6 }}>
-                                            {courtDetails.description}
-                                        </Typography>
-                                    </Box>
-                                )}
-                                <Box>
-                                    <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                                        Contact & Location
-                                    </Typography>
-                                    <List dense disablePadding>
-                                        {courtDetails.location && (
-                                            <ListItem disableGutters sx={{ py: 0.5 }}>
-                                                <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><PlaceIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>General Area: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.location}</Typography></Typography>} />
-                                            </ListItem>
-                                        )}
-                                        {courtDetails.address && (
-                                            <ListItem disableGutters sx={{ py: 0.5 }}>
-                                                <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><LocationOnIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Address: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.address}</Typography></Typography>} />
-                                            </ListItem>
-                                        )}
-                                        {courtDetails.phone && (
-                                            <ListItem disableGutters sx={{ py: 0.5 }}>
-                                                <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><PhoneIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Phone: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.phone}</Typography></Typography>} />
-                                            </ListItem>
-                                        )}
-                                        {courtDetails.hours && (
-                                            <ListItem disableGutters sx={{ py: 0.5 }}>
-                                                <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}><AccessTimeIcon /></ListItemIcon>
-                                                <ListItemText primary={<Typography variant="body2" color="text.primary" sx={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Hours: <Typography component="span" variant="body2" color="text.primary" fontWeight={500}>{courtDetails.hours}</Typography></Typography>} />
-                                            </ListItem>
-                                        )}
-                                        {courtDetails.address && (
-                                            <ListItem disableGutters sx={{ py: 0.5 }}>
-                                                <ListItemIcon sx={{ minWidth: 35, color: 'primary.main' }}>
-                                                    <DirectionsIcon />
-                                                </ListItemIcon>
-                                                <ListItemText>
-                                                    <a href={getDirectionsLink()} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                                                        <Button variant="outlined" size="small"
-                                                            sx={{
-                                                                borderColor: 'primary.main', color: 'primary.main',
-                                                                '&:hover': { borderColor: 'primary.dark', bgcolor: alpha(theme.palette.primary.main, 0.04) },
-                                                                fontSize: '0.8rem'
-                                                            }}>
-                                                            Get Directions
-                                                        </Button>
-                                                    </a>
-                                                </ListItemText>
-                                            </ListItem>
-                                        )}
-                                    </List>
-                                </Box>
-                            </Paper>
-                        </Box>
+                    {isOwner && (
+                        <Button variant="outlined" onClick={openManageMenu} endIcon={<ExpandMoreIcon />} aria-haspopup="true">
+                            Manage
+                        </Button>
                     )}
-                </Box>
+                </Stack>
+            </Stack>
 
-                {(!isMobileView || (isMobileView && activeTab === 1)) && (
-                    <Box sx={{ mt: { xs: 2, md: 4 } }}>
-                        <Paper elevation={3} sx={{
-                            p: { xs: 2, sm: 2.5 },
-                            borderRadius: 1.25,
-                        }}>
-                            <Typography variant="h6" component="h3" color="primary.dark" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                                Court Availability
-                            </Typography>
-                            {courtDetails.courts && courtDetails.courts.length > 0 ? (
-                                <CourtSchedule courts={courtDetails.courts} />
-                            ) : (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, fontSize: '0.9rem' }}>
-                                    No individual courts have been configured for this facility yet.
+            <Box
+                sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 2fr) minmax(280px, 1fr)' },
+                    gap: { xs: 3, md: 4 },
+                    alignItems: 'start',
+                }}
+            >
+                <Stack spacing={3} sx={{ minWidth: 0 }}>
+                    {/* Live courts */}
+                    <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: '10px' }}>
+                        <SectionHeading
+                            aside={hasLive && (
+                                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                                    Updated {formatAgo(age)}
                                 </Typography>
                             )}
+                        >
+                            Courts
+                        </SectionHeading>
+                        {isStale && (
+                            <Alert severity="warning" sx={{ mb: 2.5 }}>
+                                The camera here last reported {formatAgo(age)}, so we can’t say which courts are open right now.
+                            </Alert>
+                        )}
+                        {subCourts.length > 0 ? (
+                            <CourtSchedule courts={subCourts} isStale={isStale} />
+                        ) : (
+                            <Typography color="text.secondary">This facility hasn’t listed its courts yet.</Typography>
+                        )}
+                    </Paper>
+
+                    {/* Photos */}
+                    {images.length > 0 && (
+                        <Paper variant="outlined" sx={{ p: { xs: 1, sm: 1.5 }, borderRadius: '10px' }}>
+                            <Box sx={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', bgcolor: 'grey.100', aspectRatio: '16 / 9' }}>
+                                <Box
+                                    component="img"
+                                    key={selectedImageIndex}
+                                    src={images[selectedImageIndex]}
+                                    alt={`${courtDetails.name}, photo ${selectedImageIndex + 1} of ${images.length}`}
+                                    sx={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        display: 'block',
+                                    }}
+                                />
+                                {images.length > 1 && (
+                                    <>
+                                        {(['prev', 'next'] as const).map(direction => (
+                                            <IconButton
+                                                key={direction}
+                                                onClick={() => handleImageNav(direction)}
+                                                aria-label={direction === 'prev' ? 'Previous photo' : 'Next photo'}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: '50%',
+                                                    [direction === 'prev' ? 'left' : 'right']: 12,
+                                                    transform: 'translateY(-50%)',
+                                                    bgcolor: '#fff',
+                                                    border: `1px solid ${tokens.ink}`,
+                                                    '&:hover': { bgcolor: '#fff' },
+                                                }}
+                                            >
+                                                {direction === 'prev' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+                                            </IconButton>
+                                        ))}
+                                        <Box
+                                            sx={{
+                                                position: 'absolute',
+                                                bottom: 12,
+                                                right: 12,
+                                                px: 1,
+                                                py: 0.25,
+                                                borderRadius: 999,
+                                                bgcolor: alpha(tokens.ink, 0.7),
+                                                color: 'common.white',
+                                                fontFamily: tokens.fontMono,
+                                                fontSize: '0.72rem',
+                                            }}
+                                        >
+                                            {selectedImageIndex + 1} / {images.length}
+                                        </Box>
+                                    </>
+                                )}
+                            </Box>
+                            {images.length > 1 && (
+                                <Stack direction="row" spacing={1} sx={{ mt: 1, overflowX: 'auto', pb: 0.5 }}>
+                                    {images.map((src, i) => (
+                                        <Box
+                                            key={src + i}
+                                            component="button"
+                                            type="button"
+                                            onClick={() => setSelectedImageIndex(i)}
+                                            aria-label={`Show photo ${i + 1}`}
+                                            aria-current={i === selectedImageIndex}
+                                            sx={{
+                                                p: 0,
+                                                border: '2px solid',
+                                                borderColor: i === selectedImageIndex ? 'primary.main' : 'transparent',
+                                                borderRadius: '8px',
+                                                overflow: 'hidden',
+                                                flexShrink: 0,
+                                                width: 72,
+                                                height: 48,
+                                                bgcolor: 'grey.100',
+                                                opacity: i === selectedImageIndex ? 1 : 0.7,
+                                                '&:hover': { opacity: 1 },
+                                            }}
+                                        >
+                                            <Box component="img" src={src} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                        </Box>
+                                    ))}
+                                </Stack>
+                            )}
                         </Paper>
-                    </Box>
-                )}
-            </Box >
+                    )}
 
-            {courtDetails && (
+                    {/* About */}
+                    {(courtDetails.description || courtDetails.amenities?.length > 0) && (
+                        <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: '10px' }}>
+                            {courtDetails.description && (
+                                <>
+                                    <SectionHeading>About</SectionHeading>
+                                    <Typography color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>{courtDetails.description}</Typography>
+                                </>
+                            )}
+                            {courtDetails.description && courtDetails.amenities?.length > 0 && <Divider sx={{ my: 3 }} />}
+                            {courtDetails.amenities?.length > 0 && (
+                                <>
+                                    <SectionHeading>Amenities</SectionHeading>
+                                    <Box
+                                        component="ul"
+                                        sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.25 }}
+                                    >
+                                        {courtDetails.amenities.map(amenity => (
+                                            <Stack component="li" key={amenity} direction="row" spacing={1.25} alignItems="center">
+                                                <CheckIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                                                <Typography variant="body2">{amenity}</Typography>
+                                            </Stack>
+                                        ))}
+                                    </Box>
+                                </>
+                            )}
+                        </Paper>
+                    )}
+                </Stack>
+
+                {/* Sidebar */}
+                <Paper variant="outlined" sx={{ p: { xs: 2, sm: 3 }, borderRadius: '10px', position: { md: 'sticky' }, top: { md: 88 } }}>
+                    <SectionHeading>Visit</SectionHeading>
+                    {infoRows.length > 0 ? (
+                        <Stack divider={<Divider />} spacing={2}>
+                            {infoRows.map(row => (
+                                <Stack key={row.label} direction="row" spacing={1.5}>
+                                    <Box sx={{ color: 'text.secondary', pt: 0.25 }}>{row.icon}</Box>
+                                    <Box sx={{ minWidth: 0 }}>
+                                        <Typography variant="overline" color="text.secondary" component="div" sx={{ lineHeight: 1.4 }}>
+                                            {row.label}
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ fontWeight: 500, wordBreak: 'break-word' }}>{row.value}</Typography>
+                                    </Box>
+                                </Stack>
+                            ))}
+                        </Stack>
+                    ) : (
+                        <Typography variant="body2" color="text.secondary">No contact details listed.</Typography>
+                    )}
+                    {directionsLink && (
+                        <Button
+                            component="a"
+                            href={directionsLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="outlined"
+                            fullWidth
+                            startIcon={<DirectionsOutlinedIcon />}
+                            sx={{ mt: 3 }}
+                        >
+                            Open in Google Maps
+                        </Button>
+                    )}
+                </Paper>
+            </Box>
+
+            <Menu
+                anchorEl={manageAnchor}
+                open={Boolean(manageAnchor)}
+                onClose={closeManageMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <MenuItem onClick={() => { closeManageMenu(); setEditModalOpen(true); }}>
+                    <ListItemIcon><EditOutlinedIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Edit facility</ListItemText>
+                </MenuItem>
+                <MenuItem onClick={() => { closeManageMenu(); setTransferDialogOpen(true); }}>
+                    <ListItemIcon><SwapHorizIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Transfer ownership</ListItemText>
+                </MenuItem>
+                <Divider sx={{ my: 0.5 }} />
+                <MenuItem onClick={() => { closeManageMenu(); setDeleteConfirmOpen(true); }} sx={{ color: 'error.main', '& .MuiListItemIcon-root': { color: 'error.main' } }}>
+                    <ListItemIcon><DeleteOutlineIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>Delete facility</ListItemText>
+                </MenuItem>
+            </Menu>
+
+            {isOwner && (
                 <>
-                    <EditCourt
-                        open={editModalOpen}
-                        onClose={handleCloseEditModal}
-                        court={courtDetails}
-                    />
-
+                    <EditCourt open={editModalOpen} onClose={() => setEditModalOpen(false)} court={courtDetails} />
                     <TransferOwnershipDialog
                         open={isTransferDialogOpen}
                         onClose={() => setTransferDialogOpen(false)}
@@ -538,35 +495,23 @@ function CourtDetails() {
                         onSuccess={() => {
                             setTransferDialogOpen(false);
                             navigate('/dashboard');
-                        }} />
+                        }}
+                    />
                 </>
             )}
 
-
-
-            <ConfirmationDialog
-                open={deleteConfirmOpen}
-                onClose={handleCloseDeleteConfirm}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
-            >
-                <ConfirmationDialogTitle id="alert-dialog-title">
-                    {"Confirm Deletion"}
-                </ConfirmationDialogTitle>
-                <ConfirmationDialogContent>
-                    <ConfirmationDialogContentText id="alert-dialog-description">
-                        Are you sure you want to delete the facility "{courtDetails?.name}"? This action cannot be undone.
-                    </ConfirmationDialogContentText>
-                </ConfirmationDialogContent>
-                <ConfirmationDialogActions>
-                    <Button onClick={handleCloseDeleteConfirm} color="primary">
-                        Cancel
-                    </Button>
-                    <Button onClick={handleDeleteCourt} color="error" autoFocus>
-                        Delete
-                    </Button>
-                </ConfirmationDialogActions>
-            </ConfirmationDialog>
+            <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>Delete {courtDetails.name}?</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        This removes the facility and its courts for everyone. You can’t undo this.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button variant="outlined" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+                    <Button variant="contained" color="error" onClick={handleDeleteCourt}>Delete facility</Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }

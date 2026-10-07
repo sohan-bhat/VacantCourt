@@ -5,28 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import '../../styles/courts/CourtMap.css';
 import { CourtCardSummary } from '../../data/courtData';
-import {
-    Box,
-    Typography,
-    Paper,
-    Tooltip,
-    Button as MuiButton
-} from '@mui/material';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import SportsTennisIcon from '@mui/icons-material/SportsTennis';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CancelIcon from '@mui/icons-material/Cancel';
-import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
-
-
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-
-L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-    iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
-
+import { tokens } from '../../theme';
 
 interface CourtMapProps {
     courts: CourtCardSummary[];
@@ -34,239 +13,114 @@ interface CourtMapProps {
     isProximityFilteringActive: boolean;
 }
 
-const createCustomMapIcon = (isComplexConfigured: boolean, isAvailable: boolean) => {
-    const defaultIconUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png';
-    const defaultIconRetinaUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png';
-    const defaultShadowUrl = 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png';
-    const iconSize: [number, number] = [25, 41];
+const MAX_DISTANCE_KM = 40;
 
-    let wrapperClass = 'leaflet-marker-icon-wrapper';
-    if (!isComplexConfigured) {
-        wrapperClass += ' marker-grayscale';
-    } else if (!isAvailable) {
-        wrapperClass += ' marker-unavailable-strikethrough';
-    }
+function markerColor(court: CourtCardSummary) {
+    if (!court.isComplexConfigured) return '#98A2B3';
+    return court.available > 0 ? tokens.open : tokens.inUse;
+}
 
-    const htmlContent = `
-        <div class="${wrapperClass}">
-            <img src="${defaultIconUrl}" srcset="${defaultIconRetinaUrl} 2x" class="leaflet-marker-icon" alt="" style="width: ${iconSize[0]}px; height: ${iconSize[1]}px;">
-        </div>
-        <img src="${defaultShadowUrl}" class="leaflet-marker-shadow" alt="" style="width: 41px; height: 41px; left: 0px; top: 0px;">
-    `;
-
+// A pin showing the number of open courts, colored by facility status.
+const createMarkerIcon = (court: CourtCardSummary) => {
+    const label = court.isComplexConfigured ? String(court.available) : '–';
     return L.divIcon({
-        className: 'custom-leaflet-icon-container',
-        html: htmlContent,
-        iconSize: iconSize,
-        iconAnchor: [iconSize[0] / 2, iconSize[1]],
-        popupAnchor: [1, -34],
+        className: 'vc-marker',
+        html: `<span class="vc-marker-pin" style="--pin:${markerColor(court)}"><span>${label}</span></span>`,
+        iconSize: [32, 40],
+        iconAnchor: [16, 38],
+        popupAnchor: [0, -34],
     });
 };
 
+const userIcon = L.divIcon({
+    className: 'vc-marker',
+    html: '<span class="vc-user-dot"></span>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+});
 
-interface SetMapBoundsProps {
-    bounds: L.LatLngExpression[] | undefined;
-}
-
-function SetMapBounds({ bounds }: SetMapBoundsProps) {
+function SetMapBounds({ bounds }: { bounds: L.LatLngExpression[] | undefined }) {
     const map = useMap();
     useEffect(() => {
-        if (bounds) {
-            const LBounds = L.latLngBounds(bounds);
-            if (LBounds.isValid()) {
-                map.fitBounds(LBounds, { padding: [50, 50] });
-            }
+        if (!bounds) return;
+        const latLngBounds = L.latLngBounds(bounds);
+        if (latLngBounds.isValid()) {
+            map.fitBounds(latLngBounds, { padding: [56, 56], maxZoom: 15 });
         }
     }, [map, bounds]);
-
     return null;
 }
 
-const MAX_DISTANCE_KM = 40;
-
 function CourtMap({ courts, userLocation, isProximityFilteringActive }: CourtMapProps) {
-    const initialCenter: [number, number] = [34.0522, -118.2437];
-    const defaultZoomForNoCourtsOrUserLocation = 3;
-    const zoomForUserLocationIfNoCourtsInRange = 12;
-    const zoomForSingleCourt = 14;
-
+    const initialCenter: [number, number] = [33.0198, -96.6989];
     const courtsWithCoords = courts.filter(court => court.latitude && court.longitude);
 
     let mapCenter = initialCenter;
-    let mapZoom = defaultZoomForNoCourtsOrUserLocation;
-    let boundsToFit: L.LatLngBoundsExpression | undefined = undefined;
+    let mapZoom = 10;
+    let boundsToFit: L.LatLngTuple[] | undefined;
 
-    if (isProximityFilteringActive && userLocation) {
-        const courtsWithinProximity = courtsWithCoords.filter(
-            court => court.distanceKm !== undefined && court.distanceKm <= MAX_DISTANCE_KM
-        );
+    const visibleCourts = isProximityFilteringActive && userLocation
+        ? courtsWithCoords.filter(court => court.distanceKm !== undefined && court.distanceKm <= MAX_DISTANCE_KM)
+        : courtsWithCoords;
 
-        if (courtsWithinProximity.length > 0) {
-            boundsToFit = courtsWithinProximity.map(court => [court.latitude!, court.longitude!] as L.LatLngTuple);
-        } else {
-            mapCenter = [userLocation.latitude, userLocation.longitude];
-            mapZoom = zoomForUserLocationIfNoCourtsInRange;
-        }
-    } else if (courtsWithCoords.length > 0) {
-        boundsToFit = courtsWithCoords.map(court => [court.latitude!, court.longitude!] as L.LatLngTuple);
+    if (visibleCourts.length > 1) {
+        boundsToFit = visibleCourts.map(court => [court.latitude!, court.longitude!] as L.LatLngTuple);
+    } else if (visibleCourts.length === 1) {
+        mapCenter = [visibleCourts[0].latitude!, visibleCourts[0].longitude!];
+        mapZoom = 14;
     } else if (userLocation) {
         mapCenter = [userLocation.latitude, userLocation.longitude];
-        mapZoom = zoomForUserLocationIfNoCourtsInRange;
-    }
-
-
-    if (!boundsToFit && courtsWithCoords.length === 1) {
-        mapCenter = [courtsWithCoords[0].latitude!, courtsWithCoords[0].longitude!];
-        mapZoom = zoomForSingleCourt;
+        mapZoom = 12;
     }
 
     return (
-        <div className="court-map-container">
-            <div className="map-wrapper">
-                <MapContainer
-                    center={mapCenter}
-                    zoom={mapZoom}
-                    scrollWheelZoom={true}
-                    className="map-component"
-                    key={boundsToFit ? JSON.stringify(boundsToFit) : `${mapCenter[0]}-${mapCenter[1]}-${mapZoom}`}
-                >
-                    <TileLayer
-                        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
+        <div className="map-wrapper">
+            <MapContainer
+                center={mapCenter}
+                zoom={mapZoom}
+                scrollWheelZoom={false}
+                className="map-component"
+                key={boundsToFit ? JSON.stringify(boundsToFit) : `${mapCenter[0]}-${mapCenter[1]}-${mapZoom}`}
+            >
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                />
 
-                    {courtsWithCoords.map(court => {
-                        const isConfigured = court.isComplexConfigured;
-                        const isCurrentlyAvailable = court.available > 0;
+                {userLocation && (
+                    <Marker position={[userLocation.latitude, userLocation.longitude]} icon={userIcon} interactive={false} />
+                )}
 
-                        return (
-                            <Marker
-                                key={court.id}
-                                position={[court.latitude!, court.longitude!]}
-                                icon={createCustomMapIcon(isConfigured, isCurrentlyAvailable)}
-                            >
-                                <Popup>
-                                    <strong>{court.name}</strong><br />
-                                    {!isConfigured
-                                        ? `${court.total} total courts (not configured)`
-                                        : `${court.available} / ${court.total} courts available`}
-                                    <br />
-                                    <Link to={`/court/${court.id}`}>Details</Link>
-                                    <br />
+                {visibleCourts.map(court => (
+                    <Marker key={court.id} position={[court.latitude!, court.longitude!]} icon={createMarkerIcon(court)}>
+                        <Popup>
+                            <div className="vc-popup">
+                                <strong className="vc-popup-title">{court.name}</strong>
+                                <span className="vc-popup-meta">{court.location} · {court.type}</span>
+                                <span className="vc-popup-status" style={{ color: markerColor(court) }}>
+                                    {court.isComplexConfigured
+                                        ? `${court.available} of ${court.total} courts open`
+                                        : `${court.total} courts · no live status`}
+                                </span>
+                                <div className="vc-popup-actions">
+                                    <Link to={`/court/${court.id}`}>View details</Link>
                                     {court.address && (
                                         <a
                                             href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(court.address)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{ display: 'inline-block', marginTop: '5px', color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 'bold' }}
                                         >
-                                            Get Directions (Google Maps)
+                                            Directions
                                         </a>
                                     )}
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
-
-                    {boundsToFit && <SetMapBounds bounds={boundsToFit} />}
-
-                </MapContainer>
-            </div>
-
-            <div className="map-court-list">
-                {(isProximityFilteringActive && userLocation
-                    ? courts.filter(court => court.distanceKm !== undefined && court.distanceKm <= MAX_DISTANCE_KM)
-                    : courts
-                ).map(court => (
-                    <div className="court-map-card-item" key={court.id}>
-                        <Paper
-                            elevation={3}
-                            sx={{
-                                p: 2,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                height: '100%',
-                                borderRadius: 2,
-                                transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                                '&:hover': {
-                                    transform: 'translateY(-3px)',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                },
-                                border: `1px solid ${!court.isComplexConfigured ? '#bdbdbd' : (court.available > 0 ? 'var(--success-color)' : 'var(--error-color)')}`,
-                                opacity: !court.isComplexConfigured ? 0.85 : 1,
-                            }}
-                        >
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', mb: 1 }}>
-                                <Typography variant="h6" component="h4" sx={{ color: 'primary.main', fontWeight: 600, flexGrow: 1 }}>
-                                    {court.name}
-                                </Typography>
-                                {!court.isComplexConfigured && (
-                                    <Tooltip title="This facility's courts are not yet configured.">
-                                        <SettingsSuggestIcon color="disabled" sx={{ fontSize: '1.2rem' }} />
-                                    </Tooltip>
-                                )}
-                            </Box>
-                            
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                <LocationOnIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.secondary', transform: 'translateY(-0.27rem)'  }} />
-                                <Typography variant="body2" color="text.secondary">
-                                    {court.location}
-                                </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                <SportsTennisIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.secondary', transform: 'translateY(-0.27rem)'  }} />
-                                <Typography variant="body2" color="text.secondary">
-                                    {court.type}
-                                </Typography>
-                            </Box>
-
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1, minHeight: '24px' }}>
-                                {!court.isComplexConfigured ? (
-                                    <>
-                                        <SettingsSuggestIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'text.disabled', transform: 'translateY(-0.27rem)'  }} />
-                                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'text.secondary' }}>
-                                            Not Configured ({court.total} total courts)
-                                        </Typography>
-                                    </>
-                                ) : court.available > 0 ? (
-                                    <>
-                                        <CheckCircleIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'success.main', transform: 'translateY(-0.27rem)'  }} />
-                                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'success.main' }} >
-                                            Available ({court.available}/{court.total})
-                                        </Typography>
-                                    </>
-                                ) : (
-                                    <>
-                                        <CancelIcon sx={{ fontSize: '1rem', mr: 0.5, color: 'error.main', transform: 'translateY(-0.27rem)'  }} />
-                                        <Typography variant="body2" sx={{ fontWeight: 500, color: 'error.main' }} >
-                                            Unavailable ({court.available}/{court.total})
-                                        </Typography>
-                                    </>
-                                )}
-                            </Box>
-
-                            {court.distanceKm !== undefined && (
-                                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 1, fontWeight: 500 }}>
-                                    {court.distanceKm} km away
-                                </Typography>
-                            )}
-
-                            <Box sx={{ marginTop: 'auto', width: '100%' }}>
-                                <Link to={`/court/${court.id}`} style={{ textDecoration: 'none', width: '100%' }}>
-                                    <MuiButton
-                                        variant="contained"
-                                        color="primary"
-                                        fullWidth
-                                        sx={{ bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}
-                                    >
-                                        View Details
-                                    </MuiButton>
-                                </Link>
-                            </Box>
-                        </Paper>
-                    </div>
+                                </div>
+                            </div>
+                        </Popup>
+                    </Marker>
                 ))}
-            </div>
+
+                {boundsToFit && <SetMapBounds bounds={boundsToFit} />}
+            </MapContainer>
         </div>
     );
 }

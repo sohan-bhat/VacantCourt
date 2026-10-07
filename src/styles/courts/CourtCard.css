@@ -1,41 +1,29 @@
 .court-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    gap: 16px;
 }
 
-.court-card {
-    background-color: var(--bg-paper);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+/* Stretched link: the facility name's link covers the whole card. */
+.court-card-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
 }
 
-.court-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+.court-card-link:focus-visible {
+    outline: none;
 }
 
-.court-card-skeleton {
-    background-color: var(--bg-paper);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+.court-card:has(.court-card-link:focus-visible) {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
-.court-info {
-    padding: 16px;
-}
-
-.notify-courtname {
-    display: inline-flex;
-}
-
-@media (max-width: 768px) {
+@media (max-width: 640px) {
     .court-list {
         grid-template-columns: 1fr;
+        gap: 12px;
     }
 }

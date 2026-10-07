@@ -1,113 +1,121 @@
-.court-map-container {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-    width: 100%;
-}
-
 .map-wrapper {
     width: 100%;
-    height: 450px;
+    height: clamp(320px, 52vh, 520px);
     border-radius: var(--border-radius-lg);
     overflow: hidden;
-    box-shadow: var(--shadow-md);
+    border: 1px solid var(--line);
+    background: #EEF0F3;
+    isolation: isolate;
 }
 
 .map-component {
     width: 100%;
     height: 100%;
+    font-family: var(--font-body);
 }
 
-.map-placeholder {
-    display: none;
+.vc-marker {
+    background: none;
+    border: none;
 }
 
-.custom-leaflet-icon-container {
+.vc-marker-pin {
     position: relative;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50% 50% 50% 4px;
+    transform: rotate(-45deg);
+    background: var(--pin);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(27, 29, 33, 0.35);
+}
+
+.vc-marker-pin > span {
+    transform: rotate(45deg);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.vc-user-dot {
     display: block;
-    width: 25px;
-    height: 41px;
-}
-
-.leaflet-marker-icon-wrapper.marker-unavailable-strikethrough {
-    position: relative;
-    display: inline-block;
-    opacity: 0.6;
-}
-
-.leaflet-marker-icon-wrapper.marker-grayscale img.leaflet-marker-icon {
-    filter: grayscale(100%);
-    opacity: 70%;
-}
-
-.leaflet-marker-icon-wrapper.marker-unavailable-strikethrough::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: -30%;
-    width: 150%;
-    height: 3px;
-    background-color: var(--error-color);
-    transform: translateY(-50%) rotate(25deg);
-    z-index: 10;
-    border-radius: 1.5px;
-    box-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
-}
-
-.leaflet-marker-icon-wrapper .leaflet-marker-icon {
-    display: block;
-    position: relative;
-    z-index: 5;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 6px rgba(45, 91, 166, 0.18);
 }
 
 .leaflet-popup-content-wrapper {
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-lg);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-hard);
+    border: 1px solid var(--ink);
+}
+
+.leaflet-popup-content {
+    margin: 14px 16px;
 }
 
 .leaflet-popup-tip {
-    background: var(--bg-paper);
-    box-shadow: var(--shadow-lg);
+    box-shadow: none;
 }
 
-.map-court-list {
-    display: grid;
-    gap: 16px;
-    margin-top: 8px;
-    padding: 0;
-    list-style: none;
-    grid-template-columns: 1fr;
-}
-
-@media (min-width: 600px) {
-    .map-court-list {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 900px) {
-    .map-court-list {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-@media (min-width: 1200px) {
-    .map-court-list {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-.court-map-card-item {
+.vc-popup {
     display: flex;
     flex-direction: column;
+    gap: 2px;
+    min-width: 190px;
+    font-family: var(--font-body);
 }
 
-.court-map-card-item .MuiTypography-h6 {
-    margin: 0 0 8px 0;
+.vc-popup-title {
+    font-size: 14px;
+    font-weight: 650;
+    color: var(--ink);
+}
+
+.vc-popup-meta {
+    font-size: 12px;
+    color: var(--ink-soft);
+}
+
+.vc-popup-status {
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.vc-popup-actions {
+    display: flex;
+    gap: 14px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+}
+
+.vc-popup-actions a {
+    font-size: 13px;
+    font-weight: 600;
     color: var(--primary-color);
 }
 
-.court-map-card-item .MuiTypography-body2 {
-    color: var(--text-secondary);
-    margin-bottom: 8px;
+.vc-popup-actions a:hover {
+    text-decoration: underline;
+}
+
+.leaflet-control-zoom {
+    border: 1px solid var(--line) !important;
+    border-radius: var(--border-radius) !important;
+    overflow: hidden;
+    box-shadow: none !important;
+}
+
+.leaflet-control-zoom a {
+    color: var(--ink) !important;
 }

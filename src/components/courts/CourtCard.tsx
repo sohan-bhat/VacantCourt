@@ -1,158 +1,121 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import '../../styles/courts/CourtCard.css';
-import { CourtCardSummary } from '../../data/courtData';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
+    Box,
+    Button,
     CircularProgress,
-    IconButton,
-    Tooltip,
     Dialog,
-    DialogTitle,
+    DialogActions,
     DialogContent,
     DialogContentText,
-    DialogActions,
-    Button,
-    Box,
+    DialogTitle,
+    IconButton,
     Paper,
-    RadioGroup,
-    FormControlLabel,
-    Radio,
-    TextField,
-    Typography,
-    FormControl,
-    Stack,
     Skeleton,
-    Chip,
+    Stack,
+    Tooltip,
+    Typography,
 } from '@mui/material';
-import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
-import NotificationsIcon from '@mui/icons-material/Notifications';
+import { alpha } from '@mui/material/styles';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import toast from 'react-hot-toast';
-import EmailIcon from '@mui/icons-material/Email';
-import SmsIcon from '@mui/icons-material/Sms';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
-import { MuiTelInput, matchIsValidTel } from 'mui-tel-input';
+import { CourtCardSummary } from '../../data/courtData';
 import { useAuth } from '../auth/AuthContext';
 import { addNotificationRequest, getNotificationRequestForUser, removeNotificationRequest } from '../../services/notificationService';
 import { trackNotificationSubscribed } from '../../services/analyticsService';
+import StatusPill from '../brand/StatusPill';
+import { getFacilityStatus, isStale } from '../brand/status';
+import { tokens } from '../../theme';
+import '../../styles/courts/CourtCard.css';
+
+function useIsStale(lastUpdated: CourtCardSummary['lastUpdatedStatus']) {
+    const [stale, setStale] = useState(() => isStale(lastUpdated));
+    useEffect(() => {
+        setStale(isStale(lastUpdated));
+        const id = setInterval(() => setStale(isStale(lastUpdated)), 15000);
+        return () => clearInterval(id);
+    }, [lastUpdated]);
+    return stale;
+}
 
 const CourtCardSkeleton = () => (
-    <Box className="court-card-skeleton" sx={{ p: 2, border: '1px solid #e0e0e0', overflow: 'visible' }}>
-        <Stack spacing={1.5}>
-            <Skeleton variant="text" width="60%" height={32} />
-            <Skeleton variant="text" width="40%" height={20} />
-            <Skeleton variant="text" width="80%" height={20} />
-
-            <Box sx={{ flexGrow: 1 }} />
-
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
-                <Skeleton variant="rectangular" width={120} height={28} sx={{ borderRadius: '16px' }} />
-                <Skeleton variant="rectangular" width={90} height={20} sx={{ borderRadius: '4px' }} />
-            </Stack>
-        </Stack>
-    </Box>
+    <Paper variant="outlined" sx={{ p: 2.5, borderRadius: '10px' }}>
+        <Skeleton variant="text" width="70%" height={26} />
+        <Skeleton variant="text" width="45%" height={20} />
+        <Skeleton variant="rounded" width={90} height={22} sx={{ mt: 3 }} />
+    </Paper>
 );
 
 function SingleCourtCard({ court }: { court: CourtCardSummary }) {
-    const [isStale, setIsStale] = useState(false);
-
-    useEffect(() => {
-        const STALE_THRESHOLD_SECONDS = 297;
-
-        const calculateStaleness = () => {
-            const timestampValue = court.lastUpdatedStatus;
-            if (!timestampValue) {
-                setIsStale(false);
-                return;
-            }
-
-            let lastUpdatedSeconds = 0;
-            if (typeof timestampValue === 'object' && timestampValue !== null && typeof timestampValue.seconds === 'number') {
-                lastUpdatedSeconds = timestampValue.seconds;
-            }
-            else if (typeof timestampValue === 'number') {
-                lastUpdatedSeconds = timestampValue / 1000;
-            }
-
-            if (lastUpdatedSeconds > 0) {
-                const nowSeconds = Date.now() / 1000;
-                setIsStale((nowSeconds - lastUpdatedSeconds) > STALE_THRESHOLD_SECONDS);
-            } else {
-                setIsStale(false);
-            }
-        };
-
-        calculateStaleness();
-
-        const intervalId = setInterval(calculateStaleness, 3000);
-
-        return () => clearInterval(intervalId);
-
-    }, [court.lastUpdatedStatus]);
+    const stale = useIsStale(court.lastUpdatedStatus);
+    const { status, label } = getFacilityStatus(court, stale);
 
     return (
-        <div className={`court-card ${!court.isComplexConfigured ? 'court-card-unconfigured' : ''}`}>
-            <div className="court-info">
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Typography variant="h6" component="h3" color="primary.main" sx={{ flexGrow: 1, opacity: court.isComplexConfigured ? 1 : 0.7, fontSize: '1.1rem', mb: 1 }}>
+        <Paper
+            variant="outlined"
+            className="court-card"
+            sx={{
+                position: 'relative',
+                p: 2.5,
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2.5,
+                '&:hover': { borderColor: 'text.primary' },
+            }}
+        >
+            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography
+                        component={RouterLink}
+                        to={`/court/${court.id}`}
+                        className="court-card-link"
+                        sx={{ fontWeight: 600, fontSize: '1.0625rem', color: 'text.primary', display: 'block' }}
+                    >
                         {court.name}
                     </Typography>
-                    {court.isComplexConfigured && court.available === 0 && (
-                        <NotificationButton court={court} />
-                    )}
-                    {!court.isComplexConfigured && (
-                        <Tooltip title="This facility's courts are not yet configured in the system.">
-                            <SettingsSuggestIcon color="disabled" sx={{ mb: 1.5 }} />
-                        </Tooltip>
-                    )}
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ opacity: court.isComplexConfigured ? 1 : 0.7, mb: 0.5 }}>{court.type}</Typography>
-                <Typography variant="body2" color="text.primary" sx={{ opacity: court.isComplexConfigured ? 1 : 0.7, mb: 2 }}>{court.location}</Typography>
-
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {!court.isComplexConfigured ? (
-                            <Chip label="Not Configured" size="small" color="default" />
-                        ) : court.available > 0 ? (
-                            <Chip label="Available" size="small" color="success" />
-                        ) : (
-                            <Chip label="Unavailable" size="small" color="error" />
-                        )}
-                        {isStale && (
-                            <Tooltip title="Status data may be outdated. The monitoring hardware appears to be offline.">
-                                <WarningAmberIcon sx={{ color: 'warning.main', ml: 2, verticalAlign: 'middle', fontSize: '25px' }} />
-                            </Tooltip>
-                        )}
-                    </Box>
-
-                    <Typography variant="caption" color="text.secondary">
-                        {!court.isComplexConfigured ? `(${court.total} total courts)` : `${court.available} / ${court.total} courts`}
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }} noWrap>
+                        {court.location}
                     </Typography>
                 </Box>
-            </div>
-            <Box className="court-actions">
-                <Button
-                    component={Link}
-                    to={`/court/${court.id}`}
-                    fullWidth
-                    variant="text"
-                    color="primary"
-                    sx={{ py: 1.5, borderTop: 1, borderColor: 'divider', borderRadius: 0 }}
+                {status === 'in-use' && (
+                    <Box sx={{ position: 'relative', zIndex: 1, mt: -0.5, mr: -0.75 }}>
+                        <NotificationButton court={court} />
+                    </Box>
+                )}
+            </Stack>
+
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1} sx={{ mt: 'auto' }}>
+                <Tooltip
+                    title={
+                        status === 'offline'
+                            ? 'This camera hasn’t reported in over five minutes, so we can’t say what’s open.'
+                            : status === 'unconfigured'
+                                ? 'No camera here yet. Hours and address are still listed.'
+                                : ''
+                    }
                 >
-                    View Details
-                </Button>
-            </Box>
-        </div>
+                    <span><StatusPill status={status} label={label} /></span>
+                </Tooltip>
+                <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                    {court.distanceKm !== undefined
+                        ? `${court.distanceKm.toFixed(1)} km away`
+                        : `${court.total} ${court.total === 1 ? 'court' : 'courts'}`}
+                </Typography>
+            </Stack>
+        </Paper>
     );
 }
 
-
 interface NotificationButtonProps {
-    court: CourtCardSummary;
+    court: Pick<CourtCardSummary, 'id' | 'name'>;
+    variant?: 'icon' | 'button';
 }
 
-function NotificationButton({ court }: NotificationButtonProps) {
+export function NotificationButton({ court, variant = 'icon' }: NotificationButtonProps) {
     const { currentUser } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -162,8 +125,6 @@ function NotificationButton({ court }: NotificationButtonProps) {
     const [requestId, setRequestId] = useState<string | null>(null);
     const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
     const [isAuthModalOpen, setAuthModalOpen] = useState(false);
-    const [notificationMethod, setNotificationMethod] = useState('email');
-    const [phoneNumber, setPhoneNumber] = useState('');
 
     useEffect(() => {
         if (!currentUser) {
@@ -176,13 +137,12 @@ function NotificationButton({ court }: NotificationButtonProps) {
 
         getNotificationRequestForUser(court.id, currentUser.uid)
             .then(existingRequestId => {
-                if (isMounted) {
-                    if (existingRequestId) {
-                        setRequestId(existingRequestId);
-                        setState('subscribed');
-                    } else {
-                        setState('idle');
-                    }
+                if (!isMounted) return;
+                if (existingRequestId) {
+                    setRequestId(existingRequestId);
+                    setState('subscribed');
+                } else {
+                    setState('idle');
                 }
             })
             .catch(() => {
@@ -203,36 +163,21 @@ function NotificationButton({ court }: NotificationButtonProps) {
     };
 
     const handleSubscribe = async () => {
-        if (notificationMethod === 'email') {
-            if (!currentUser || !currentUser.email) {
-                toast.error("Your email is not available. Cannot subscribe.");
-                return;
-            }
-            setConfirmModalOpen(false);
-            setState('loading');
-            try {
-                const newRequestId = await addNotificationRequest(
-                    court.id,
-                    court.name,
-                    currentUser.uid,
-                    currentUser.email
-                );
-                setRequestId(newRequestId);
-                setState('subscribed');
-                toast.success(`You'll be notified for ${court.name}!`);
-                trackNotificationSubscribed(court.id, court.name, currentUser.uid, currentUser.email)
-            } catch {
-                setState('error');
-                toast.error('Could not set notification. Please try again.');
-            }
-        } else if (notificationMethod === 'sms') {
-            const isValid = matchIsValidTel(phoneNumber);
-            if (!isValid) {
-                toast.error("Please enter a valid phone number.");
-                return;
-            }
-            setConfirmModalOpen(false);
-            toast.success(`SMS notifications are in development. We've noted your interest for ${phoneNumber}!`);
+        if (!currentUser || !currentUser.email) {
+            toast.error('Your account has no email address, so we can’t send alerts.');
+            return;
+        }
+        setConfirmModalOpen(false);
+        setState('loading');
+        try {
+            const newRequestId = await addNotificationRequest(court.id, court.name, currentUser.uid, currentUser.email);
+            setRequestId(newRequestId);
+            setState('subscribed');
+            toast.success(`Alert on for ${court.name}`);
+            trackNotificationSubscribed(court.id, court.name, currentUser.uid, currentUser.email);
+        } catch {
+            setState('error');
+            toast.error('Couldn’t turn on the alert. Try again.');
         }
     };
 
@@ -243,142 +188,92 @@ function NotificationButton({ court }: NotificationButtonProps) {
             await removeNotificationRequest(requestId);
             setRequestId(null);
             setState('idle');
-            toast.success('Notification cancelled.');
+            toast.success('Alert turned off');
         } catch {
             setState('error');
-            toast.error('Could not cancel notification. Please try again.');
+            toast.error('Couldn’t turn off the alert. Try again.');
         }
     };
 
-    const getTooltipText = () => {
-        switch (state) {
-            case 'subscribed': return 'You are subscribed. Click to cancel notification.';
-            case 'loading': return 'Loading...';
-            case 'error': return 'An error occurred. Please refresh.';
-            default: return 'Notify me when a court becomes available.';
-        }
-    };
+    const tooltip = {
+        subscribed: 'Alert on. Click to turn it off.',
+        loading: 'Loading…',
+        error: 'Something went wrong. Refresh the page.',
+        idle: 'Email me when a court opens',
+    }[state];
 
     return (
         <>
-            <Tooltip title={getTooltipText()}>
+            {variant === 'button' ? (
+                <Button
+                    variant="outlined"
+                    onClick={handleBellClick}
+                    disabled={state === 'loading' || state === 'error'}
+                    aria-pressed={state === 'subscribed'}
+                    startIcon={state === 'loading'
+                        ? <CircularProgress size={16} color="inherit" />
+                        : state === 'subscribed' ? <NotificationsActiveIcon /> : <NotificationsNoneIcon />}
+                    sx={state === 'subscribed' ? { color: 'primary.main', borderColor: 'primary.main' } : undefined}
+                >
+                    {state === 'subscribed' ? 'Alert on' : 'Alert me when one opens'}
+                </Button>
+            ) : (
+            <Tooltip title={tooltip}>
                 <span>
                     <IconButton
-                        color={state === 'subscribed' ? 'primary' : 'warning'}
                         size="small"
                         onClick={handleBellClick}
                         disabled={state === 'loading' || state === 'error'}
-                        sx={{ ml: 1, position: 'relative', bottom: '0.3rem' }}
+                        aria-label={tooltip}
+                        aria-pressed={state === 'subscribed'}
+                        sx={{
+                            color: state === 'subscribed' ? 'primary.main' : 'text.secondary',
+                            bgcolor: state === 'subscribed' ? alpha(tokens.court, 0.08) : 'transparent',
+                        }}
                     >
-                        {state === 'loading' && <CircularProgress size={20} color="inherit" />}
-                        {state === 'idle' && <NotificationsIcon />}
-                        {state === 'subscribed' && <NotificationsActiveIcon />}
-                        {state === 'error' && <NotificationsIcon color="error" />}
+                        {state === 'loading' && <CircularProgress size={18} color="inherit" />}
+                        {state === 'idle' && <NotificationsNoneIcon fontSize="small" />}
+                        {state === 'subscribed' && <NotificationsActiveIcon fontSize="small" />}
+                        {state === 'error' && <NotificationsNoneIcon fontSize="small" color="error" />}
                     </IconButton>
                 </span>
             </Tooltip>
+            )}
 
             <Dialog open={isConfirmModalOpen} onClose={() => setConfirmModalOpen(false)} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ fontWeight: 'bold' }}>Set Availability Notification</DialogTitle>
+                <DialogTitle>Get an alert for {court.name}</DialogTitle>
                 <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                        <DialogContentText>
-                            Choose how you'd like to be notified when a court at <strong>{court.name}</strong> becomes available.
-                        </DialogContentText>
-
-                        <FormControl>
-                            <RadioGroup
-                                aria-labelledby="notification-method-group-label"
-                                value={notificationMethod}
-                                onChange={(e) => setNotificationMethod(e.target.value)}
-                                name="notification-method-group"
-                            >
-                                <Paper
-                                    variant="outlined"
-                                    sx={{ p: 2, mb: 2, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 1.5, borderColor: notificationMethod === 'email' ? 'primary.main' : 'rgba(0, 0, 0, 0.23)' }}
-                                    onClick={() => setNotificationMethod('email')}
-                                >
-                                    <FormControlLabel value="email" control={<Radio />} label={
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <EmailIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                                            <Typography variant="body1" sx={{ fontWeight: 500 }}>Email Notification</Typography>
-                                        </Box>
-                                    } />
-                                    <TextField
-                                        fullWidth
-                                        disabled
-                                        id="email-display"
-                                        label="Your Email"
-                                        defaultValue={currentUser?.email}
-                                        variant="outlined"
-                                        size="small"
-                                    />
-                                </Paper>
-                                <Tooltip title="SMS notifications are coming soon!">
-                                    <span>
-                                        <Paper
-                                            variant="outlined"
-                                            sx={{
-                                                p: 2,
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: 1.5,
-                                                borderColor: 'rgba(0, 0, 0, 0.23)',
-                                                opacity: 0.6
-                                            }}
-                                        >
-                                            <FormControlLabel
-                                                disabled
-                                                value="sms"
-                                                control={<Radio />}
-                                                label={
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <SmsIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                                                        <Typography variant="body1" sx={{ fontWeight: 500 }}>SMS Notification</Typography>
-                                                    </Box>
-                                                }
-                                            />
-                                            <MuiTelInput
-                                                disabled
-                                                fullWidth
-                                                size="small"
-                                                label="Your Phone Number"
-                                                defaultCountry="US"
-                                                value={phoneNumber}
-                                                onChange={(newPhone) => setPhoneNumber(newPhone)}
-                                            />
-                                        </Paper>
-                                    </span>
-                                </Tooltip>
-                            </RadioGroup>
-                        </FormControl>
-                        <DialogContentText variant="caption" sx={{ textAlign: 'center', mt: 1 }}>
-                            Note: There may be a 1-3 minute delay after a court becomes available.
-                        </DialogContentText>
-                    </Box>
-                </DialogContent>
-                <DialogActions sx={{ p: '16px 24px' }}>
-                    <Button onClick={() => setConfirmModalOpen(false)}>Cancel</Button>
-                    <Button
-                        onClick={handleSubscribe}
-                        variant="contained"
-                        autoFocus
+                    <DialogContentText sx={{ mb: 2 }}>
+                        We’ll email you as soon as a court opens here. Alerts can arrive a minute or two after the court frees up.
+                    </DialogContentText>
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        spacing={1.5}
+                        sx={{ px: 1.75, py: 1.5, borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'grey.50' }}
                     >
-                        Set Notification
-                    </Button>
+                        <MailOutlineIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                        <Typography variant="body2" sx={{ fontWeight: 500 }} noWrap>{currentUser?.email}</Typography>
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button variant="outlined" onClick={() => setConfirmModalOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSubscribe} variant="contained" autoFocus>Turn on alert</Button>
                 </DialogActions>
             </Dialog>
 
-            <Dialog open={isAuthModalOpen} onClose={() => setAuthModalOpen(false)}>
-                <DialogTitle>Sign Up for Notifications</DialogTitle>
+            <Dialog open={isAuthModalOpen} onClose={() => setAuthModalOpen(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>Sign in to get alerts</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Please sign up or log in to receive notifications when courts become available.
+                        Create a free account or sign in, and we’ll email you when a court opens at {court.name}.
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setAuthModalOpen(false)}>Cancel</Button>
-                    <Button onClick={() => navigate('/auth', { state: { from: location } })} color="primary" autoFocus>Sign Up / Login</Button>
+                    <Button variant="outlined" onClick={() => setAuthModalOpen(false)}>Cancel</Button>
+                    <Button variant="contained" onClick={() => navigate('/auth', { state: { from: location } })} autoFocus>
+                        Sign in
+                    </Button>
                 </DialogActions>
             </Dialog>
         </>
@@ -390,8 +285,8 @@ interface CourtCardProps {
     loading?: boolean;
     isProximityFilteringActive?: boolean;
     maxDistanceKm?: number;
-    currentFilterType?: string;
-    currentSearchTerm?: string;
+    onClearFilters?: () => void;
+    hasActiveFilters?: boolean;
 }
 
 function CourtCard({
@@ -399,49 +294,47 @@ function CourtCard({
     loading,
     isProximityFilteringActive,
     maxDistanceKm,
-    currentFilterType,
-    currentSearchTerm
+    onClearFilters,
+    hasActiveFilters,
 }: CourtCardProps) {
+    const displayedCourts = isProximityFilteringActive
+        ? courts.filter(court => court.distanceKm !== undefined && court.distanceKm <= maxDistanceKm!)
+        : courts;
 
-    const displayedCourts = courts.filter(court => {
-        const matchesType = !currentFilterType || currentFilterType === 'all' || court.type.toLowerCase() === currentFilterType.toLowerCase();
-        const matchesSearch = !currentSearchTerm ||
-            court.name.toLowerCase().includes(currentSearchTerm.toLowerCase()) ||
-            court.location.toLowerCase().includes(currentSearchTerm.toLowerCase());
-        const passesBasicFilters = matchesType && matchesSearch;
+    if (loading) {
+        return (
+            <div className="court-list">
+                {Array.from({ length: 6 }).map((_, index) => <CourtCardSkeleton key={index} />)}
+            </div>
+        );
+    }
 
-        if (isProximityFilteringActive) {
-            return passesBasicFilters &&
-                court.distanceKm !== undefined &&
-                court.distanceKm <= maxDistanceKm!;
-        }
-        return passesBasicFilters;
-    });
-
-    let noResultsMessage = "No courts found matching your criteria";
-    if (!loading && displayedCourts.length === 0) {
-        if (isProximityFilteringActive) {
-            noResultsMessage = `No courts found near you. Try adjusting your search or disabling proximity sorting.`;
-        } else {
-            noResultsMessage = "No courts found matching your current filters.";
-        }
+    if (displayedCourts.length === 0) {
+        return (
+            <Paper
+                variant="outlined"
+                sx={{ py: { xs: 6, md: 8 }, px: 3, textAlign: 'center', borderRadius: '10px', borderStyle: 'dashed' }}
+            >
+                <Typography variant="h6" component="p">
+                    {isProximityFilteringActive ? `No courts within ${maxDistanceKm} km` : 'No courts match these filters'}
+                </Typography>
+                <Typography color="text.secondary" sx={{ mt: 0.75, maxWidth: 380, mx: 'auto' }}>
+                    {isProximityFilteringActive
+                        ? 'Turn off “Nearest first” to see every facility.'
+                        : 'Try a different sport or search term.'}
+                </Typography>
+                {hasActiveFilters && onClearFilters && (
+                    <Button variant="outlined" onClick={onClearFilters} sx={{ mt: 3 }}>
+                        Clear filters
+                    </Button>
+                )}
+            </Paper>
+        );
     }
 
     return (
         <div className="court-list">
-            {loading ? (
-                Array.from({ length: 6 }).map((_, index) => (
-                    <CourtCardSkeleton key={index} />
-                ))
-            ) : (
-                displayedCourts.length === 0 ? (
-                    <div className="no-results">{noResultsMessage}</div>
-                ) : (
-                    displayedCourts.map(court => (
-                        <SingleCourtCard key={court.id} court={court} />
-                    ))
-                )
-            )}
+            {displayedCourts.map(court => <SingleCourtCard key={court.id} court={court} />)}
         </div>
     );
 }

@@ -3,29 +3,34 @@ import CourtCard from '../courts/CourtCard';
 import CourtMap from '../courts/CourtMap';
 import FilterControls from './FilterControls';
 import SearchBar from './SearchBar';
-import '../../styles/dashboard/Dashboard.css';
 import { subscribeToCourtsSummary, CourtCardSummary, getDistanceFromLatLonInKm } from '../../data/courtData';
 import {
+    Box,
     Button,
     CircularProgress,
     Dialog,
-    DialogTitle,
-    DialogContent,
     DialogActions,
-    Typography,
+    DialogContent,
+    DialogTitle,
+    Paper,
+    Stack,
+    ToggleButton,
+    ToggleButtonGroup,
     Tooltip,
-    IconButton,
-    useTheme,
+    Typography,
     useMediaQuery,
-    Switch,
-    FormControlLabel,
-    Stack
+    useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import LocationDisabledIcon from '@mui/icons-material/LocationDisabled';
-import LocationOn from '@mui/icons-material/LocationOn'
-import MyLocationIcon from '@mui/icons-material/MyLocation';
+import NearMeOutlinedIcon from '@mui/icons-material/NearMeOutlined';
+import NearMeIcon from '@mui/icons-material/NearMe';
+import ViewAgendaOutlinedIcon from '@mui/icons-material/ViewAgendaOutlined';
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import toast from 'react-hot-toast';
 import PageMeta from '../layout/PageMeta';
+import { isStale } from '../brand/status';
+import { tokens } from '../../theme';
 
 const MAX_DISTANCE_KM = 40;
 
@@ -34,10 +39,9 @@ const USER_LOCATION_KEY = 'vacantCourtUserLocation';
 
 type GeolocationStatus = 'idle' | 'pending' | 'granted' | 'denied' | 'error';
 
-
 function Dashboard() {
     const [courts, setCourts] = useState<CourtCardSummary[]>([]);
-    const [viewMode, setViewMode] = useState('list');
+    const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
     const [filterType, setFilterType] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
@@ -51,12 +55,8 @@ function Dashboard() {
     const [geolocationStatus, setGeolocationStatus] = useState<GeolocationStatus>(() => {
         const storedPermission = localStorage.getItem(LOCATION_PERMISSION_KEY) as GeolocationStatus | null;
         const storedLocation = localStorage.getItem(USER_LOCATION_KEY);
-        if (storedPermission === 'granted' && storedLocation) {
-            return 'granted';
-        }
-        if (storedPermission === 'denied') {
-            return 'denied';
-        }
+        if (storedPermission === 'granted' && storedLocation) return 'granted';
+        if (storedPermission === 'denied') return 'denied';
         return 'idle';
     });
 
@@ -83,7 +83,7 @@ function Dashboard() {
             },
             (err) => {
                 console.error(err);
-                setError("Failed to load court data. Please try again later.");
+                setError('We couldn’t load courts right now.');
                 setLoading(false);
             },
             showOnlyConfigured
@@ -91,74 +91,64 @@ function Dashboard() {
         return () => unsubscribe();
     }, [showOnlyConfigured]);
 
-    useEffect(() => {
-        if (isLocationFilteringEnabled && !userLocation && geolocationStatus !== 'denied' && geolocationStatus !== 'pending') {
-            if (navigator.permissions) {
-                navigator.permissions.query({ name: 'geolocation' }).then(permissionStatus => {
-                    if (permissionStatus.state === 'granted') {
-                        initiateGeolocation();
-                    } else if (permissionStatus.state === 'prompt') {
-                    } else if (permissionStatus.state === 'denied') {
-                        setGeolocationStatus('denied');
-                        localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
-                        setIsLocationFilteringEnabled(false);
-                    }
-                });
-            }
-        }
-    }, [isLocationFilteringEnabled, userLocation, geolocationStatus]);
-
-
     const initiateGeolocation = useCallback(() => {
         setGeolocationStatus('pending');
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const newLocation = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude,
-                    };
-                    setUserLocation(newLocation);
-                    setGeolocationStatus('granted');
-                    toast.success('Using location for proximity');
-                    setIsLocationFilteringEnabled(true);
-                    localStorage.setItem(LOCATION_PERMISSION_KEY, 'granted');
-                    localStorage.setItem(USER_LOCATION_KEY, JSON.stringify(newLocation));
-                },
-                (geoError) => {
-                    setUserLocation(null);
-                    const status: GeolocationStatus = geoError.code === geoError.PERMISSION_DENIED ? 'denied' : 'error';
-                    setGeolocationStatus(status);
-                    localStorage.setItem(LOCATION_PERMISSION_KEY, status);
-                    localStorage.removeItem(USER_LOCATION_KEY);
-                    if (status === 'error') {
-                        toast.error('Failed to get your location. Please try again.');
-                    } else if (status === 'denied') {
-                        toast.error('Please allow location permissions in your browser.');
-                        setIsLocationFilteringEnabled(false);
-                    }
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        } else {
+        if (!navigator.geolocation) {
             setGeolocationStatus('error');
             setIsLocationFilteringEnabled(false);
             localStorage.setItem(LOCATION_PERMISSION_KEY, 'error');
             localStorage.removeItem(USER_LOCATION_KEY);
-            toast.error('Geolocation is not supported by your browser.');
-        }
-    }, []);
-
-    const handleGeolocationIconClick = () => {
-        if (geolocationStatus === 'pending') {
+            toast.error('This browser doesn’t support location.');
             return;
         }
-
-        if (geolocationStatus === 'granted' && userLocation) {
-            if (!isLocationFilteringEnabled) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const newLocation = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                };
+                setUserLocation(newLocation);
+                setGeolocationStatus('granted');
                 setIsLocationFilteringEnabled(true);
-            }
-            initiateGeolocation();
+                localStorage.setItem(LOCATION_PERMISSION_KEY, 'granted');
+                localStorage.setItem(USER_LOCATION_KEY, JSON.stringify(newLocation));
+                toast.success('Sorting by distance');
+            },
+            (geoError) => {
+                setUserLocation(null);
+                const status: GeolocationStatus = geoError.code === geoError.PERMISSION_DENIED ? 'denied' : 'error';
+                setGeolocationStatus(status);
+                localStorage.setItem(LOCATION_PERMISSION_KEY, status);
+                localStorage.removeItem(USER_LOCATION_KEY);
+                if (status === 'error') {
+                    toast.error('Couldn’t get your location. Try again.');
+                } else {
+                    toast.error('Location is blocked. Allow it in your browser settings.');
+                    setIsLocationFilteringEnabled(false);
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    }, []);
+
+    useEffect(() => {
+        if (isLocationFilteringEnabled && !userLocation && geolocationStatus !== 'denied' && geolocationStatus !== 'pending') {
+            navigator.permissions?.query({ name: 'geolocation' }).then(permissionStatus => {
+                if (permissionStatus.state === 'granted') {
+                    initiateGeolocation();
+                } else if (permissionStatus.state === 'denied') {
+                    setGeolocationStatus('denied');
+                    localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
+                    setIsLocationFilteringEnabled(false);
+                }
+            });
+        }
+    }, [isLocationFilteringEnabled, userLocation, geolocationStatus, initiateGeolocation]);
+
+    const handleNearMeClick = () => {
+        if (geolocationStatus === 'pending') return;
+        if (geolocationStatus === 'granted' && userLocation) {
+            setIsLocationFilteringEnabled(prev => !prev);
         } else {
             setShowGeolocationDialog(true);
         }
@@ -175,247 +165,186 @@ function Dashboard() {
         setIsLocationFilteringEnabled(false);
         localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
         localStorage.removeItem(USER_LOCATION_KEY);
-        toast.error('Proximity filtering disabled as location was denied.');
     };
 
-    const handleLocationFilterToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const checked = event.target.checked;
-        setIsLocationFilteringEnabled(checked);
-
-        if (checked) {
-            if (geolocationStatus === 'granted' && userLocation) {
-            } else if (geolocationStatus !== 'pending') {
-                setShowGeolocationDialog(true);
-            }
-        } else {
-        }
-    };
+    const isProximityActive = isLocationFilteringEnabled && geolocationStatus === 'granted';
 
     const processedCourts = courts
-        .filter(court => {
-            if (filterType === 'all') return true;
-            return court.type.toLowerCase() === filterType.toLowerCase();
-        })
+        .filter(court => filterType === 'all' || court.type.toLowerCase() === filterType.toLowerCase())
         .filter(court => {
             if (searchTerm === '') return true;
-            const lowerSearchTerm = searchTerm.toLowerCase();
-            return (
-                court.name.toLowerCase().includes(lowerSearchTerm) ||
-                court.location.toLowerCase().includes(lowerSearchTerm)
-            );
+            const term = searchTerm.toLowerCase();
+            return court.name.toLowerCase().includes(term) || court.location.toLowerCase().includes(term);
         })
-        .map(court => {
-            let distanceKmCalculated: number | undefined;
-            if (userLocation && court.latitude !== undefined && court.longitude !== undefined) {
-                distanceKmCalculated = getDistanceFromLatLonInKm(
-                    userLocation.latitude,
-                    userLocation.longitude,
-                    court.latitude,
-                    court.longitude
-                );
-            }
-            return {
-                ...court,
-                distanceKm: distanceKmCalculated,
-            };
-        })
+        .map(court => ({
+            ...court,
+            distanceKm: userLocation && court.latitude !== undefined && court.longitude !== undefined
+                ? getDistanceFromLatLonInKm(userLocation.latitude, userLocation.longitude, court.latitude, court.longitude)
+                : undefined,
+        }))
         .sort((a, b) => {
-            if (a.isComplexConfigured && !b.isComplexConfigured) {
-                return -1;
+            if (a.isComplexConfigured !== b.isComplexConfigured) return a.isComplexConfigured ? -1 : 1;
+            if (isProximityActive && a.distanceKm !== undefined && b.distanceKm !== undefined && a.distanceKm !== b.distanceKm) {
+                return a.distanceKm - b.distanceKm;
             }
-            if (!a.isComplexConfigured && b.isComplexConfigured) {
-                return 1;
-            }
-
-            if (isLocationFilteringEnabled && geolocationStatus === 'granted' && a.distanceKm !== undefined && b.distanceKm !== undefined) {
-                if (a.distanceKm !== b.distanceKm) {
-                    return a.distanceKm - b.distanceKm;
-                }
-            }
-
             return a.name.localeCompare(b.name);
         });
 
-    const getGeolocationControlUI = () => {
-        let element;
-        let tooltipTitle = '';
-        let iconColor: 'primary' | 'inherit' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'primary';
+    const configuredCourts = courts.filter(c => c.isComplexConfigured);
+    const liveCourts = configuredCourts.filter(c => !isStale(c.lastUpdatedStatus));
+    const offlineCount = configuredCourts.length - liveCourts.length;
+    const openCourtCount = liveCourts.reduce((sum, c) => sum + c.available, 0);
+    const facilitiesWithOpenings = liveCourts.filter(c => c.available > 0).length;
+    const summaryText = [
+        liveCourts.length > 0
+            ? `${openCourtCount} ${openCourtCount === 1 ? 'court' : 'courts'} open at ${facilitiesWithOpenings} of ${liveCourts.length} ${liveCourts.length === 1 ? 'facility' : 'facilities'}`
+            : 'No cameras are reporting right now',
+        offlineCount > 0 && liveCourts.length > 0 && `${offlineCount} ${offlineCount === 1 ? 'camera' : 'cameras'} offline`,
+    ].filter(Boolean).join(' · ');
+    const hasActiveFilters = filterType !== 'all' || searchTerm !== '';
 
-        switch (geolocationStatus) {
-            case 'granted':
-                return (
-                    <FormControlLabel
-                        control={
-                            <Switch
-                                checked={isLocationFilteringEnabled}
-                                onChange={handleLocationFilterToggle}
-                                color="success"
-                                disabled={false}
-                            />
-                        }
-                        label={
-                            <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mr: 1 }}>
-                                {isMobile ? null : <LocationOn color="success" sx={{ fontSize: '1.1rem' }} />}
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        whiteSpace: 'nowrap',
-                                        fontWeight: 500,
-                                        color: isLocationFilteringEnabled ? theme.palette.success.main : theme.palette.text.secondary,
-                                        fontSize: { xs: '0.75rem', sm: '0.875rem' }
-                                    }}
-                                >
-                                    Proximity
-                                </Typography>
-                            </Stack>
-                        }
-                        sx={{
-                            mr: { xs: 0, sm: 1 },
-                            ml: { xs: 1, sm: 0 },
-                            border: `1px solid ${isLocationFilteringEnabled ? theme.palette.success.light : theme.palette.grey[300]}`,
-                            borderRadius: 1,
-                            py: 0.5,
-                            px: 1,
-                            bgcolor: isLocationFilteringEnabled ? theme.palette.success.light + '1A' : theme.palette.grey[100],
-                            transition: 'all 0.2s ease-in-out',
-                            '&:hover': {
-                                cursor: 'pointer',
-                                bgcolor: isLocationFilteringEnabled ? theme.palette.success.light + '33' : theme.palette.grey[200],
-                            },
-                        }}
-                    />
-                );
-            case 'pending':
-                tooltipTitle = 'Locating you...';
-                iconColor = 'primary';
-                element = <CircularProgress size={20} color="inherit" />;
-                break;
-            case 'denied':
-                tooltipTitle = 'Location denied. Click to allow.';
-                iconColor = 'error';
-                element = <LocationDisabledIcon />;
-                break;
-            case 'error':
-                tooltipTitle = 'Location error. Click to retry.';
-                iconColor = 'error';
-                element = <LocationDisabledIcon />;
-                break;
-            case 'idle':
-            default:
-                tooltipTitle = 'Find courts near your location.';
-                iconColor = 'inherit';
-                element = <MyLocationIcon />;
-                break;
+    const clearFilters = () => {
+        setFilterType('all');
+        setSearchTerm('');
+    };
+
+    const renderNearMeButton = () => {
+        if (geolocationStatus === 'pending') {
+            return (
+                <Button variant="outlined" disabled startIcon={<CircularProgress size={14} color="inherit" />} sx={{ height: 40, flexShrink: 0 }}>
+                    Locating…
+                </Button>
+            );
         }
-
+        const blocked = geolocationStatus === 'denied' || geolocationStatus === 'error';
         return (
-            <Tooltip title={tooltipTitle}>
-                <span>
-                    <IconButton
-                        onClick={handleGeolocationIconClick}
-                        color={iconColor}
-                        disabled={geolocationStatus === 'pending'}
-                        aria-label={tooltipTitle}
-                        sx={{ ml: { xs: 1, sm: 2 } }}
-                    >
-                        {element}
-                    </IconButton>
-                </span>
+            <Tooltip title={blocked ? 'Location is off. Click to try again.' : isProximityActive ? 'Showing courts within 40 km, nearest first' : 'Sort courts by distance from you'}>
+                <Button
+                    variant="outlined"
+                    onClick={handleNearMeClick}
+                    aria-pressed={isProximityActive}
+                    startIcon={blocked ? <LocationDisabledIcon /> : isProximityActive ? <NearMeIcon /> : <NearMeOutlinedIcon />}
+                    sx={{
+                        height: 40,
+                        flexShrink: 0,
+                        ...(isProximityActive && {
+                            borderColor: 'primary.main',
+                            color: 'primary.main',
+                            bgcolor: alpha(tokens.court, 0.06),
+                            '&:hover': { borderColor: 'primary.dark', bgcolor: alpha(tokens.court, 0.1) },
+                        }),
+                    }}
+                >
+                    {isProximityActive ? 'Nearest first' : 'Near me'}
+                </Button>
             </Tooltip>
         );
     };
-
-
-    if (error) {
-        return <div className="dashboard-error">{error}</div>;
-    }
 
     return (
         <>
             <PageMeta
                 title="Find Available Courts"
-                description="Search for tennis and other sports' courts near you and see their real-time availability."
+                description="Search for tennis and other courts near you and see their live availability."
             />
-            <div className="dashboard">
-                <div className="dashboard-header">
-                    <Typography variant="h5" component="h2" color="primary.dark" sx={{ fontWeight: 700 }}>
-                        Find Available Courts Near You!
+
+            <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="flex-end"
+                spacing={2}
+                sx={{ mb: { xs: 3, md: 4 } }}
+            >
+                <Box>
+                    <Typography component="h1" variant="h4" sx={{ fontSize: { xs: '1.75rem', md: '2.125rem' } }}>
+                        Courts
                     </Typography>
-                    <div className="dashboard-header-controls">
+                    <Typography color="text.secondary" sx={{ mt: 0.75, minHeight: 24 }}>
+                        {!loading && !error && summaryText}
+                    </Typography>
+                </Box>
+                <ToggleButtonGroup
+                    value={viewMode}
+                    exclusive
+                    onChange={(_, newMode) => newMode && setViewMode(newMode)}
+                    size="small"
+                    aria-label="View"
+                    sx={{ flexShrink: 0 }}
+                >
+                    <ToggleButton value="list" aria-label="List view">
+                        <ViewAgendaOutlinedIcon sx={{ fontSize: 18 }} />
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>List</Box>
+                    </ToggleButton>
+                    <ToggleButton value="map" aria-label="Map view">
+                        <MapOutlinedIcon sx={{ fontSize: 18 }} />
+                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Map</Box>
+                    </ToggleButton>
+                </ToggleButtonGroup>
+            </Stack>
+
+            <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, mb: 3, borderRadius: '10px' }}>
+                <Stack spacing={2}>
+                    <Stack direction="row" spacing={1.25}>
                         <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-                        {getGeolocationControlUI()}
-                    </div>
-                </div>
+                        {renderNearMeButton()}
+                    </Stack>
+                    <FilterControls
+                        filterType={filterType}
+                        setFilterType={setFilterType}
+                        showOnlyConfigured={showOnlyConfigured}
+                        setShowOnlyConfigured={setShowOnlyConfigured}
+                    />
+                </Stack>
+            </Paper>
 
-                <FilterControls
-                    filterType={filterType}
-                    setFilterType={setFilterType}
-                    viewMode={viewMode}
-                    setViewMode={setViewMode}
-                    showOnlyConfigured={showOnlyConfigured}
-                    setShowOnlyConfigured={setShowOnlyConfigured}
-                />
-
-                {viewMode === 'list' ? (
+            {error ? (
+                <Paper variant="outlined" sx={{ py: 8, px: 3, textAlign: 'center', borderRadius: '10px' }}>
+                    <Typography variant="h6" component="p">{error}</Typography>
+                    <Typography color="text.secondary" sx={{ mt: 0.75 }}>Check your connection, then reload the page.</Typography>
+                    <Button variant="outlined" onClick={() => window.location.reload()} sx={{ mt: 3 }}>Reload</Button>
+                </Paper>
+            ) : (
+                <Stack spacing={3}>
+                    {viewMode === 'map' && (
+                        <CourtMap
+                            courts={processedCourts}
+                            userLocation={userLocation}
+                            isProximityFilteringActive={isProximityActive}
+                        />
+                    )}
                     <CourtCard
                         courts={processedCourts}
                         loading={loading}
-                        isProximityFilteringActive={isLocationFilteringEnabled && geolocationStatus === 'granted'}
+                        isProximityFilteringActive={isProximityActive}
                         maxDistanceKm={MAX_DISTANCE_KM}
-                        currentFilterType={filterType}
-                        currentSearchTerm={searchTerm}
+                        hasActiveFilters={hasActiveFilters}
+                        onClearFilters={clearFilters}
                     />
-                ) : (
-                    <CourtMap
-                        courts={processedCourts}
-                        userLocation={userLocation}
-                        isProximityFilteringActive={isLocationFilteringEnabled && geolocationStatus === 'granted'}
-                    />
-                )}
+                </Stack>
+            )}
 
-                <Dialog
-                    open={showGeolocationDialog}
-                    onClose={() => setShowGeolocationDialog(false)}
-                    maxWidth="sm"
-                    fullWidth
-                    fullScreen={isMobile}
-                    PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2 } }}
-                >
-                    <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', py: 2 }}>
-                        Find Courts Near You
-                    </DialogTitle>
-                    <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: '15px !important', sm: '20px !important' } }}>
-                        <Typography variant="body1" sx={{ mb: 2 }}>
-                            Allow access to your location to see the closest courts first.
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            This will allow us to sort available courts by their proximity to you, putting the closest options first. Your location data is used only for this purpose and is not stored on our servers.
-                        </Typography>
-                    </DialogContent>
-                    <DialogActions sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'grey.50', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
-                        <Button
-                            onClick={handleDenyLocation}
-                            variant="outlined"
-                            sx={{
-                                mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: 'primary.main', color: 'primary.main',
-                                '&:hover': { borderColor: 'primary.main', bgcolor: 'rgba(30, 58, 138, 0.04)' }
-                            }}
-                        >
-                            No Thanks
-                        </Button>
-                        <Button
-                            onClick={handleAllowLocation}
-                            variant="contained"
-                            sx={{
-                                px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: 'success.main',
-                                '&:hover': { bgcolor: 'success.dark' }
-                            }}
-                        >
-                            Allow Location
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </div>
+            <Dialog
+                open={showGeolocationDialog}
+                onClose={() => setShowGeolocationDialog(false)}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>See the closest courts first</DialogTitle>
+                <DialogContent>
+                    <Typography color="text.secondary">
+                        Share your location to sort facilities by distance and hide ones more than {MAX_DISTANCE_KM} km away.
+                        Your location is saved in this browser only and never sent to our servers.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ flexDirection: isMobile ? 'column-reverse' : 'row', alignItems: 'stretch' }}>
+                    <Button onClick={handleDenyLocation} variant="outlined" fullWidth={isMobile}>
+                        Not now
+                    </Button>
+                    <Button onClick={handleAllowLocation} variant="contained" fullWidth={isMobile} sx={{ ml: '0 !important' }}>
+                        Share location
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }
