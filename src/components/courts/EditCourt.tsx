@@ -349,10 +349,10 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
     if (!formData) return null;
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2 } }}>
-            <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', py: 2, px: { xs: 2, sm: 3 } }}>Edit Sports Facility</DialogTitle>
-            <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-                <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : '16px' } }}>
+            <DialogTitle sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>Edit facility</DialogTitle>
+            <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: '16px !important', sm: '24px !important' } }}>
+                <Alert severity="info" sx={{ mb: 3 }}>
                     You are editing details for: <strong>{court?.name}</strong>. Status of individual courts is managed elsewhere.
                 </Alert>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -378,7 +378,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                                 filterOptions={(x) => x}
                                 loading={autocompleteLoading}
                                 inputValue={inputValue}
-                                onInputChange={(event, newInputValue) => {
+                                onInputChange={(_event, newInputValue) => {
                                     setInputValue(newInputValue);
                                     if (selectedAddressOption && selectedAddressOption.display_name !== newInputValue) {
                                         setSelectedAddressOption(null);
@@ -386,7 +386,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                                     }
                                 }}
                                 value={selectedAddressOption}
-                                onChange={(event, newValue) => {
+                                onChange={(_event, newValue) => {
                                     setSelectedAddressOption(newValue);
                                     if (newValue) {
                                         setFormData(prev => ({
@@ -446,7 +446,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                         </Typography>
                         <Box sx={{ mb: 2 }}>
                             {formData.courts.map((subCourt, index) => (
-                                <Box key={subCourt.id || index} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, alignItems: { sm: 'center' } }}>
+                                <Box key={subCourt.id || index} sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider', borderRadius: 1.5, alignItems: { sm: 'center' } }}>
                                     <TextField required size="small" label="Court Name/Number" value={subCourt.name} onChange={(e) => handleSubCourtChange(index, 'name', e.target.value)} error={!!(errors.courts?.[index]?.name)} helperText={errors.courts?.[index]?.name} fullWidth />
                                     <TextField required size="small" label="Surface Type" value={subCourt.surface} onChange={(e) => handleSubCourtChange(index, 'surface', e.target.value)} error={!!(errors.courts?.[index]?.surface)} helperText={errors.courts?.[index]?.surface} fullWidth />
                                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '120px' }}>
@@ -454,7 +454,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                                             Status: {subCourt.status}
                                         </Typography>
                                         {!subCourt.isConfigured && (
-                                            <Chip label="Not Configured" size="small" sx={{ mt: 0.5, backgroundColor: '#fff3e0', color: '#e65100' }} />
+                                            <Chip label="Not Configured" size="small" sx={{ mt: 0.5 }} color="warning" variant="outlined" />
                                         )}
                                     </Box>
                                     <IconButton onClick={() => handleRemoveSubCourt(index)} disabled={formData.courts.length === 1} color="error" sx={{ alignSelf: { xs: 'flex-end', sm: 'center' } }}>
@@ -463,7 +463,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                                 </Box>
                             ))}
                         </Box>
-                        <Button startIcon={<AddIcon />} onClick={handleAddSubCourt} variant="outlined" size="small" sx={{ mb: 2, borderColor: 'primary.main', color: 'primary.main', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}>Add Another Court</Button>
+                        <Button startIcon={<AddIcon />} onClick={handleAddSubCourt} variant="outlined" size="small" sx={{ mb: 2 }}>Add Another Court</Button>
                     </Box>
                     <Divider />
                     <Box ref={descriptionRef}>
@@ -475,7 +475,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                         <Typography variant="h6" sx={{ color: 'primary.main' }} gutterBottom>Facility Images</Typography>
                         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
                             {existingImageUrls.map((url, index) => (
-                                <Box key={`existing-${url}-${index}`} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid #ddd' }}>
+                                <Box key={`existing-${url}-${index}`} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
                                     <img src={url} alt={`Existing ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     {!isSubmitting && (
                                         <IconButton onClick={() => handleDeleteExistingImage(url)} sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'rgba(0,0,0,0.5)', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' }, p: 0.5 }}>
@@ -485,9 +485,9 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                                 </Box>
                             ))}
                             {newImagesToUpload.map((image, index) => (
-                                <Box key={`new-${image.preview}-${index}`} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid #ddd' }}>
+                                <Box key={`new-${image.preview}-${index}`} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
                                     {uploadProgress[image.preview] !== undefined && uploadProgress[image.preview] < 100 && (
-                                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.7)' }}>
+                                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255, 255, 255, 0.75)' }}>
                                             <CircularProgress variant="determinate" value={uploadProgress[image.preview]} size={40} />
                                         </Box>
                                     )}
@@ -500,9 +500,9 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                                 </Box>
                             ))}
                             {(existingImageUrls.length + newImagesToUpload.length) < 5 && !isSubmitting && (
-                                <Box component="label" sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, border: '2px dashed #ccc', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}>
+                                <Box component="label" sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, border: '1.5px dashed', borderColor: 'grey.300', bgcolor: 'grey.50', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'grey.100' } }}>
                                     <input autoComplete='off' type="file" hidden accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { handleAddNewImage(file); e.target.value = ''; } }} />
-                                    <AddPhotoAlternateIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: '#666', mb: 1 }} />
+                                    <AddPhotoAlternateIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'text.secondary', mb: 1 }} />
                                     <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: { xs: '0.75rem', sm: '0.875rem' } }}>Add Image</Typography>
                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>(Max 5)</Typography>
                                 </Box>
@@ -512,7 +512,7 @@ export default function EditCourt({ open, onClose, court }: EditCourtProps) {
                 </Box>
             </DialogContent>
             <DialogActions sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'grey.50', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
-                <Button onClick={onClose} variant="outlined" disabled={isSubmitting} sx={{ mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: 'primary.main', color: 'primary.main', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}>Cancel</Button>
+                <Button onClick={onClose} variant="outlined" disabled={isSubmitting} sx={{ mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' } }}>Cancel</Button>
                 <Button onClick={handleSubmit} variant="contained" disabled={isSubmitting} sx={{ px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}>
                     {isSubmitting ? <CircularProgress size={24} color="inherit" /> : 'Save Changes'}
                 </Button>

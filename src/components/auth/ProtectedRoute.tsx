@@ -1,10 +1,11 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { Box, CircularProgress } from '@mui/material';
 
 const ProtectedRoute: React.FC = () => {
     const { currentUser, isLoading } = useAuth();
+    const location = useLocation();
 
     if (isLoading) {
         return (
@@ -15,7 +16,7 @@ const ProtectedRoute: React.FC = () => {
     }
 
     if (!currentUser) {
-        return <Navigate to="/auth" replace />;
+        return <Navigate to="/auth" replace state={{ from: location }} />;
     }
 
     return <Outlet />;

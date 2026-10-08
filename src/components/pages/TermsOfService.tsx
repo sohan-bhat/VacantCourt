@@ -1,5 +1,5 @@
 import React from 'react';
-import { Container, Typography, Box, Paper, Link, Alert } from '@mui/material';
+import { Container, Typography, Box, Link } from '@mui/material';
 import PageMeta from '../layout/PageMeta';
 
 const YOUR_CONTACT_EMAIL = 'officialvacantcourt@gmail.com';
@@ -15,10 +15,22 @@ const TermsOfService: React.FC = () => {
                 title="Terms of Service"
                 description="Read the official Terms of Service for using VacantCourt. This agreement outlines your rights and responsibilities when accessing our website and services."
             />
-            <Box sx={{ bgcolor: 'grey.100', py: 5 }}>
-                <Container maxWidth="md">
-                    <Paper elevation={3} sx={{ p: { xs: 3, md: 5 } }}>
-                        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+            <Box
+                sx={{
+                    bgcolor: 'background.paper',
+                    py: { xs: 6, md: 10 },
+                    '& h1': { fontSize: { xs: '2.25rem', md: '3rem' }, letterSpacing: '-0.035em', mb: 1 },
+                    '& h2': { fontSize: '1.25rem', fontWeight: 650, letterSpacing: '-0.015em', mt: 5, mb: 1.5 },
+                    '& h3': { fontSize: '1.05rem', fontWeight: 650, mt: 3 },
+                    '& p, & li': { color: 'text.secondary', lineHeight: 1.75 },
+                    '& li': { mb: 1 },
+                    '& strong': { color: 'text.primary', fontWeight: 600 },
+                    '& ul': { pl: 2.5 },
+                }}
+            >
+                <Container maxWidth="md" sx={{ maxWidth: { md: 760 } }}>
+                    <Box component="article">
+                        <Typography variant="h3" component="h1">
                             Terms of Service
                         </Typography>
                         <Typography variant="body2" color="text.secondary" paragraph>
@@ -32,8 +44,8 @@ const TermsOfService: React.FC = () => {
                             By accessing or using the Service, you agree to be bound by these Terms.
                         </Typography>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 1. User Accounts
                             </Typography>
                             <Typography component="div">
@@ -51,8 +63,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 2. Acceptable Use
                             </Typography>
                             <Typography paragraph>
@@ -68,8 +80,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 3. Service Content and Availability
                             </Typography>
                             <Typography paragraph>
@@ -77,8 +89,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 4. Intellectual Property
                             </Typography>
                             <Typography paragraph>
@@ -86,8 +98,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 5. Limitation of Liability
                             </Typography>
                             <Typography paragraph sx={{ fontWeight: 'bold' }}>
@@ -95,8 +107,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 6. Governing Law
                             </Typography>
                             <Typography paragraph>
@@ -104,8 +116,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 7. Changes to Terms
                             </Typography>
                             <Typography paragraph>
@@ -113,8 +125,8 @@ const TermsOfService: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 8. Contact Us
                             </Typography>
                             <Typography paragraph>
@@ -123,7 +135,7 @@ const TermsOfService: React.FC = () => {
                                 <Link href={`mailto:${YOUR_CONTACT_EMAIL}`}>{YOUR_CONTACT_EMAIL}</Link>
                             </Typography>
                         </Box>
-                    </Paper>
+                    </Box>
                 </Container>
             </Box>
         </>

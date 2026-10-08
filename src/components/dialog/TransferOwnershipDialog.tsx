@@ -42,17 +42,17 @@ const TransferOwnershipDialog: React.FC<TransferOwnershipDialogProps> = ({ open,
     };
 
     return (
-        <Dialog open={open} onClose={closeDialog}>
-            <DialogTitle>Transfer Ownership of "{courtName}"</DialogTitle>
+        <Dialog open={open} onClose={closeDialog} maxWidth="xs" fullWidth>
+            <DialogTitle>Transfer {courtName}</DialogTitle>
             <DialogContent>
                 <DialogContentText sx={{ mb: 2 }}>
-                    Enter the email address of the user you wish to transfer this facility to. This action is irreversible. You will lose all ownership rights.
+                    Enter the email of the VacantCourt user who should own this facility. You’ll lose the ability to edit or delete it, and you can’t undo this.
                 </DialogContentText>
                 <TextField
                     autoFocus
                     margin="dense"
                     id="email"
-                    label="New Owner's Email Address"
+                    label="New owner’s email"
                     autoComplete='off'
                     type="email"
                     fullWidth
@@ -62,8 +62,8 @@ const TransferOwnershipDialog: React.FC<TransferOwnershipDialogProps> = ({ open,
                     disabled={isLoading}
                 />
             </DialogContent>
-            <DialogActions sx={{ p: '16px 24px' }}>
-                <Button onClick={closeDialog} disabled={isLoading}>Cancel</Button>
+            <DialogActions>
+                <Button variant="outlined" onClick={closeDialog} disabled={isLoading}>Cancel</Button>
                 <Box sx={{ position: 'relative' }}>
                     <Button
                         onClick={handleTransfer}
@@ -71,7 +71,7 @@ const TransferOwnershipDialog: React.FC<TransferOwnershipDialogProps> = ({ open,
                         color="primary"
                         disabled={isLoading || !email}
                     >
-                        Transfer Ownership
+                        Transfer ownership
                     </Button>
                     {isLoading && (
                         <CircularProgress

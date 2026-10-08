@@ -1,40 +1,81 @@
 import React, { useState, FormEvent, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import * as Form from '@radix-ui/react-form';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import CircularProgress from '@mui/material/CircularProgress';
-import { signUpWithEmail, loginWithEmail, signInWithGoogle, sendPasswordResetLink } from '../../services/authService';
-import '../../styles/auth/AuthPage.css';
-import { useAuth } from './AuthContext';
-import { FcGoogle } from 'react-icons/fc';
-import { IconButton } from '@mui/material';
+import {
+    Alert,
+    Box,
+    Button,
+    CircularProgress,
+    Divider,
+    IconButton,
+    InputAdornment,
+    Link,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { FcGoogle } from 'react-icons/fc';
+
+import { signUpWithEmail, loginWithEmail, signInWithGoogle, sendPasswordResetLink } from '../../services/authService';
+import { useAuth } from './AuthContext';
 import PageMeta from '../layout/PageMeta';
+import Logo from '../brand/Logo';
 import { trackUserSignUp } from '../../services/analyticsService';
+import '../../styles/auth/AuthPage.css';
+
+type View = 'login' | 'signup' | 'reset';
+
+const copy: Record<View, { title: string; subtitle: string; submit: string; pending: string }> = {
+    login: { title: 'Sign in.', subtitle: 'You only need an account for court alerts.', submit: 'Sign in', pending: 'Signing in…' },
+    signup: { title: 'Create an account.', subtitle: 'It’s free. You’ll get an email when a full court opens.', submit: 'Create account', pending: 'Creating account…' },
+    reset: { title: 'Reset your password.', subtitle: 'We’ll email you a link to choose a new one.', submit: 'Send reset link', pending: 'Sending…' },
+};
+
+function authErrorMessage(error: unknown): string {
+    const { code, message } = (error ?? {}) as { code?: string; message?: string };
+    switch (code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+            return 'That email and password don’t match.';
+        case 'auth/email-already-in-use':
+            return 'An account with this email already exists. Sign in instead.';
+        case 'auth/weak-password':
+            return 'Use a password with at least 6 characters.';
+        case 'auth/invalid-email':
+            return 'Enter a valid email address.';
+        case 'auth/too-many-requests':
+            return 'Too many attempts. Wait a minute, then try again.';
+        default:
+            return message || 'Something went wrong. Try again.';
+    }
+}
 
 const AuthPage: React.FC = () => {
-    const [view, setView] = useState<'login' | 'signup' | 'reset'>('login');
+    const [view, setView] = useState<View>('login');
     const navigate = useNavigate();
     const location = useLocation();
     const fromPath = location.state?.from?.pathname || '/';
+    const redirectTo = fromPath === '/' ? '/dashboard' : fromPath;
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-
+    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
 
     const { currentUser, isLoading: authIsLoading } = useAuth();
 
     useEffect(() => {
-        if (!authIsLoading && currentUser) {
-            navigate('/dashboard');
-        }
-    }, [currentUser, authIsLoading, navigate]);
+        if (!authIsLoading && currentUser) navigate(redirectTo, { replace: true });
+    }, [currentUser, authIsLoading, navigate, redirectTo]);
 
-    const resetFormState = () => {
-        setEmail('');
+    const switchView = (next: View) => {
+        setView(next);
         setPassword('');
         setConfirmPassword('');
         setFormError(null);
@@ -46,299 +87,213 @@ const AuthPage: React.FC = () => {
         setFormError(null);
         try {
             await signInWithGoogle();
-            toast.success('Successfully signed in with Google!');
-            trackUserSignUp('google')
-            navigate('/dashboard');
-        } catch (error: any) {
+            toast.success('Signed in');
+            trackUserSignUp('google');
+            navigate(redirectTo);
+        } catch {
             setIsLoading(false);
         }
-    };
-
-    const handleAuthError = (error: any) => {
-        setIsLoading(false);
-        console.error("Auth Error:", error);
-        let message = "An unexpected error occurred. Please try again.";
-        if (error.code) {
-            switch (error.code) {
-                case 'auth/user-not-found':
-                case 'auth/wrong-password':
-                    message = 'Invalid email or password.';
-                    break;
-                case 'auth/email-already-in-use':
-                    message = 'This email is already registered. Please login or use a different email.';
-                    break;
-                case 'auth/weak-password':
-                    message = 'Password is too weak. It should be at least 6 characters long.';
-                    break;
-                case 'auth/invalid-email':
-                    message = 'Please enter a valid email address.';
-                    break;
-                case 'auth/invalid-credential':
-                    message = 'Email and password do not match.';
-                    break;
-                default:
-                    message = error.message || message;
-            }
-        } else if (error && typeof error.message === 'string') {
-            message = error.message;
-        }
-        setFormError(message);
-        toast.error(message);
     };
 
     const handleSubmit = async (event: FormEvent) => {
         event.preventDefault();
         setFormError(null);
 
-        if (!email || !password) {
-            setFormError("Email and password are required.");
-            toast.error("Email and password are required.");
+        if (view === 'reset') {
+            if (!email) return setFormError('Enter the email you signed up with.');
+            setIsLoading(true);
+            try {
+                await sendPasswordResetLink(email);
+                toast.success(`Reset link sent to ${email}`);
+                switchView('login');
+            } catch (error) {
+                setFormError((error as { code?: string })?.code === 'auth/user-not-found'
+                    ? 'No account uses this email. Create one instead.'
+                    : authErrorMessage(error));
+            } finally {
+                setIsLoading(false);
+            }
             return;
         }
-        if (view === 'signup' && !confirmPassword) {
-            setFormError("Please confirm your password.");
-            toast.error("Please confirm your password.");
-            return;
-        }
-        if (view === 'signup' && password !== confirmPassword) {
-            setFormError("Passwords do not match.");
-            toast.error("Passwords do not match.");
-            return;
-        }
+
+        if (!email || !password) return setFormError('Enter your email and password.');
+        if (view === 'signup' && password !== confirmPassword) return setFormError('The passwords don’t match.');
 
         setIsLoading(true);
-
-        if (view === 'signup') {
-            try {
-                await signUpWithEmail(email, password);
-                toast.success('Account created successfully! Welcome!');
-                trackUserSignUp('email')
-                navigate('/dashboard');
-            } catch (error) {
-                handleAuthError(error);
-            }
-        } else {
-            try {
-                await loginWithEmail(email, password);
-                toast.success('Logged in successfully! Welcome back!');
-                navigate('/dashboard');
-            } catch (error) {
-                handleAuthError(error);
-            }
-        }
-    };
-
-    const handlePasswordReset = async (event: FormEvent) => {
-        event.preventDefault();
-        if (!email) {
-            setFormError("Please enter your email address to send a reset link.");
-            toast.error("Please enter your email address.");
-            return;
-        }
-        setIsLoading(true);
-        setFormError(null);
         try {
-            await sendPasswordResetLink(email);
-            toast.success(`Password reset link sent to ${email}.`);
-            setView('login');
-            resetFormState();
-        } catch (error: any) {
-            handleAuthError(error);
-            if (error.code === 'auth/user-not-found') {
-                setFormError("No account found with this email. Please sign up instead.");
+            if (view === 'signup') {
+                await signUpWithEmail(email, password);
+                toast.success('Account created');
+                trackUserSignUp('email');
+            } else {
+                await loginWithEmail(email, password);
+                toast.success('Signed in');
             }
-        } finally {
+            navigate(redirectTo);
+        } catch (error) {
+            console.error('Auth Error:', error);
+            setFormError(authErrorMessage(error));
             setIsLoading(false);
         }
     };
 
-    if (authIsLoading) {
-        return (
-            <div className="auth-page-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-                <CircularProgress />
-            </div>
-        );
-    }
+    const passwordAdornment = {
+        endAdornment: (
+            <InputAdornment position="end">
+                <IconButton
+                    size="small"
+                    edge="end"
+                    onClick={() => setShowPassword(s => !s)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                    {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                </IconButton>
+            </InputAdornment>
+        ),
+    };
 
-    if (view === 'reset') {
-        return (
-            <div className="auth-page-container">
-                <div className="auth-form-wrapper">
-                    <Link to={fromPath} className="auth-back-link" aria-label="Back to Dashboard">
-                        <IconButton component="span" sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
-                            <ArrowBackIcon />
-                        </IconButton>
-                    </Link>
-
-                    <h2>Reset Password</h2>
-                    <p style={{ fontSize: '0.9em', color: '#555', textAlign: 'center', marginBottom: '20px' }}>
-                        Enter your account's email to receive a password reset link.
-                    </p>
-
-                    <Form.Root onSubmit={handlePasswordReset} className="auth-form">
-                        {formError && <div className="form-error-message">{formError}</div>}
-
-                        <Form.Field name="email" className="form-field">
-                            <div className="form-label-container">
-                                <Form.Label className="form-label">Email</Form.Label>
-                            </div>
-                            <Form.Control asChild>
-                                <input
-                                    className="form-input"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                    autoComplete='off'
-                                />
-                            </Form.Control>
-                            <Form.Message className="form-message" match="valueMissing">
-                                Please enter your email
-                            </Form.Message>
-                        </Form.Field>
-
-                        <Form.Submit asChild>
-                            <button className="auth-submit-button" disabled={isLoading}>
-                                {isLoading ? 'Sending Link...' : 'Send Reset Link'}
-                            </button>
-                        </Form.Submit>
-                    </Form.Root>
-
-                    <p className="auth-toggle-prompt">
-                        Remembered your password?
-                        <button onClick={() => { setView('login'); resetFormState(); }} className="auth-toggle-button" disabled={isLoading}>
-                            Back to Login
-                        </button>
-                    </p>
-                </div>
-            </div>
-        )
-    }
+    const { title, subtitle, submit, pending } = copy[view];
 
     return (
         <>
             <PageMeta
-                title="Login or Sign Up"
-                description="Log in to your VacantCourt account or create a free account to receive real-time court availability notifications and manage your preferences."
+                title={view === 'signup' ? 'Create an Account' : 'Sign In'}
+                description="Sign in to VacantCourt or create a free account to get an email when a court opens."
             />
-            <div className="auth-page-container">
-                <div className="auth-form-wrapper">
-                    <Link to={fromPath} className="auth-back-link" aria-label="Back to Dashboard">
-                        <IconButton component="span" sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
-                            <ArrowBackIcon />
-                        </IconButton>
-                    </Link>
+            <Box className="auth-layout">
+                <Box className="auth-form-panel">
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: { xs: 6, md: 0 } }}>
+                        <Box component={RouterLink} to="/" aria-label="VacantCourt home" sx={{ display: 'inline-flex' }}>
+                            <Logo size={26} />
+                        </Box>
+                        <Button
+                            component={RouterLink}
+                            to={fromPath}
+                            startIcon={<ArrowBackIcon />}
+                            size="small"
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            Back
+                        </Button>
+                    </Stack>
 
-                    <h2>{view === 'login' ? 'Login' : 'Sign Up'}</h2>
+                    <Box sx={{ width: '100%', maxWidth: 380, mx: 'auto', my: 'auto', py: { md: 6 } }}>
+                        {authIsLoading ? (
+                            <Box sx={{ display: 'grid', placeItems: 'center', py: 8 }}><CircularProgress /></Box>
+                        ) : (
+                            <>
+                                <Typography component="h1" variant="h4" sx={{ fontSize: '1.875rem' }}>{title}</Typography>
+                                <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>{subtitle}</Typography>
 
-                    <IconButton
-                        type="button"
-                        onClick={handleGoogleSignIn}
-                        className="google-signin-button auth-button-social"
-                        disabled={isLoading}
-                        sx={{
-                            border: '1px solid rgba(0, 0, 0, 0.23)',
-                            borderRadius: '0.75rem',
-                        }}
-                    >
-                        <FcGoogle size={30} />
-                    </IconButton>
-
-                    <div className="auth-divider">
-                        <span>OR</span>
-                    </div>
-
-                    <Form.Root onSubmit={handleSubmit} className="auth-form">
-                        {formError && <div className="form-error-message">{formError}</div>}
-
-                        <Form.Field name="email" className="form-field">
-                            <div className="form-label-container">
-                                <Form.Label className="form-label">Email</Form.Label>
-                            </div>
-                            <Form.Control asChild>
-                                <input
-                                    className="form-input"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                    autoComplete='off'
-                                />
-                            </Form.Control>
-                            <Form.Message className="form-message" match="valueMissing">
-                                Please enter your email
-                            </Form.Message>
-                            <Form.Message className="form-message" match="typeMismatch">
-                                Please provide a valid email
-                            </Form.Message>
-                        </Form.Field>
-
-                        <Form.Field name="password" className="form-field">
-                            <div className="form-label-container">
-                                <Form.Label className="form-label">Password</Form.Label>
-                                {view === 'login' && (
-                                    <button type="button" onClick={() => { setView('reset'); resetFormState(); }} className="auth-toggle-button" style={{ fontSize: '0.8em', fontWeight: 400 }}>
-                                        Forgot Password?
-                                    </button>
+                                {view !== 'reset' && (
+                                    <>
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            size="large"
+                                            onClick={handleGoogleSignIn}
+                                            disabled={isLoading}
+                                            startIcon={<FcGoogle size={20} />}
+                                        >
+                                            Continue with Google
+                                        </Button>
+                                        <Divider sx={{ my: 3, color: 'text.secondary', fontSize: '0.8125rem' }}>or</Divider>
+                                    </>
                                 )}
-                            </div>
-                            <Form.Control asChild>
-                                <input
-                                    className="form-input"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    disabled={isLoading}
-                                    autoComplete='off'
-                                />
-                            </Form.Control>
-                            <Form.Message className="form-message" match="valueMissing">
-                                Please enter your password
-                            </Form.Message>
-                        </Form.Field>
 
-                        {view === 'signup' && (
-                            <Form.Field name="confirmPassword" className="form-field">
-                                <div className="form-label-container">
-                                    <Form.Label className="form-label">Confirm Password</Form.Label>
-                                </div>
-                                <Form.Control asChild>
-                                    <input
-                                        className="form-input"
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required
+                                <Box component="form" onSubmit={handleSubmit} noValidate>
+                                    <Stack spacing={2}>
+                                        {formError && <Alert severity="error">{formError}</Alert>}
+                                        <TextField
+                                            label="Email"
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                            disabled={isLoading}
+                                            autoComplete="email"
+                                            autoFocus
+                                            fullWidth
+                                        />
+                                        {view !== 'reset' && (
+                                            <TextField
+                                                label="Password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                required
+                                                disabled={isLoading}
+                                                autoComplete={view === 'signup' ? 'new-password' : 'current-password'}
+                                                helperText={view === 'signup' ? 'At least 6 characters' : undefined}
+                                                fullWidth
+                                                slotProps={{ input: passwordAdornment }}
+                                            />
+                                        )}
+                                        {view === 'signup' && (
+                                            <TextField
+                                                label="Confirm password"
+                                                type={showPassword ? 'text' : 'password'}
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                required
+                                                disabled={isLoading}
+                                                autoComplete="new-password"
+                                                fullWidth
+                                            />
+                                        )}
+                                        {view === 'login' && (
+                                            <Link
+                                                component="button"
+                                                type="button"
+                                                variant="body2"
+                                                onClick={() => switchView('reset')}
+                                                sx={{ alignSelf: 'flex-end', fontWeight: 500, mt: '12px !important' }}
+                                            >
+                                                Forgot password?
+                                            </Link>
+                                        )}
+                                        <Button
+                                            type="submit"
+                                            variant="contained"
+                                            size="large"
+                                            fullWidth
+                                            disabled={isLoading}
+                                            startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
+                                        >
+                                            {isLoading ? pending : submit}
+                                        </Button>
+                                    </Stack>
+                                </Box>
+
+                                <Typography variant="body2" color="text.secondary" sx={{ mt: 4, textAlign: 'center' }}>
+                                    {view === 'login' && 'New to VacantCourt? '}
+                                    {view === 'signup' && 'Already have an account? '}
+                                    {view === 'reset' && 'Remembered it? '}
+                                    <Link
+                                        component="button"
+                                        type="button"
+                                        variant="body2"
+                                        onClick={() => switchView(view === 'login' ? 'signup' : 'login')}
                                         disabled={isLoading}
-                                        autoComplete='off'
-                                    />
-                                </Form.Control>
-                                <Form.Message className="form-message" match="valueMissing">
-                                    Please confirm your password
-                                </Form.Message>
-                            </Form.Field>
+                                        sx={{ fontWeight: 600, verticalAlign: 'baseline' }}
+                                    >
+                                        {view === 'login' ? 'Create an account' : 'Sign in'}
+                                    </Link>
+                                </Typography>
+                            </>
                         )}
+                    </Box>
 
-                        <Form.Submit asChild>
-                            <button className="auth-submit-button" disabled={isLoading}>
-                                {isLoading ? 'Processing...' : (view === 'login' ? 'Login' : 'Sign Up')}
-                            </button>
-                        </Form.Submit>
-                    </Form.Root>
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', mt: 4 }}>
+                        By continuing you agree to our{' '}
+                        <Link component={RouterLink} to="/tos" color="inherit" underline="always">Terms</Link> and{' '}
+                        <Link component={RouterLink} to="/privacy" color="inherit" underline="always">Privacy Policy</Link>.
+                    </Typography>
+                </Box>
 
-                    <p className="auth-toggle-prompt">
-                        {view === 'login' ? "Don't have an account?" : 'Already have an account?'}
-                        <button onClick={() => { setView(view === 'login' ? 'signup' : 'login'); resetFormState(); }} className="auth-toggle-button" disabled={isLoading}>
-                            {view === 'login' ? 'Sign Up' : 'Login'}
-                        </button>
-                    </p>
-                </div>
-            </div>
+            </Box>
         </>
     );
 };
 
-export default AuthPage;  
+export default AuthPage;

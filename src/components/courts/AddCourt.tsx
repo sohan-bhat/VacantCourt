@@ -304,7 +304,7 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
             <Box
                 key={court.id || index}
                 sx={{
-                    display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1, alignItems: { sm: 'center' }
+                    display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2, p: 2, bgcolor: 'grey.50', border: '1px solid', borderColor: 'divider', borderRadius: 1.5, alignItems: { sm: 'center' }
                 }}
             >
                 <TextField autoComplete='off' required size="small" label="Court Name/Number"
@@ -333,10 +333,10 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : 2, bgcolor: 'background.paper' } }}>
-            <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', py: 2, px: { xs: 2, sm: 3 } }}>Add New Sports Facility</DialogTitle>
-            <DialogContent sx={{ p: { xs: 2, sm: 3 } }}>
-                <Alert severity="warning" sx={{ mb: 3, borderRadius: 2, '& .MuiAlert-icon': { color: 'warning.dark' } }}>
+        <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth fullScreen={isMobile} PaperProps={{ sx: { borderRadius: isMobile ? 0 : '16px' } }}>
+            <DialogTitle sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>Add a facility</DialogTitle>
+            <DialogContent sx={{ p: { xs: 2, sm: 3 }, pt: { xs: '16px !important', sm: '24px !important' } }}>
+                <Alert severity="warning" sx={{ mb: 3 }}>
                     Note: The facility will not be visible until configured with our hardware system.
                 </Alert>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -372,7 +372,7 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                                 filterOptions={(x) => x}
                                 loading={autocompleteLoading}
                                 inputValue={inputValue}
-                                onInputChange={(event, newInputValue) => {
+                                onInputChange={(_event, newInputValue) => {
                                     setInputValue(newInputValue);
                                     if (selectedAddressOption && selectedAddressOption.display_name !== newInputValue) {
                                         setSelectedAddressOption(null);
@@ -380,7 +380,7 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                                     }
                                 }}
                                 value={selectedAddressOption}
-                                onChange={(event, newValue) => {
+                                onChange={(_event, newValue) => {
                                     setSelectedAddressOption(newValue);
                                     if (newValue) {
                                         setFormData(prev => ({
@@ -447,7 +447,7 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Details for each court</Typography>
                         <Box sx={{ mb: 2 }}>{renderCourts()}</Box>
                         <Button startIcon={<AddIcon />} onClick={handleAddCourt} variant="outlined" size="small"
-                            sx={{ mb: 2, borderColor: 'primary.main', color: 'primary.main', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}
+                            sx={{ mb: 2 }}
                         >Add Another Court</Button>
                     </Box>
                     <Divider />
@@ -465,9 +465,9 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Add images (recommended)</Typography>
                         <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
                             {formData.images.map((image, index) => (
-                                <Box key={index} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid #ddd', }}>
+                                <Box key={index} sx={{ position: 'relative', width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, borderRadius: 1, overflow: 'hidden', border: '1px solid', borderColor: 'divider', }}>
                                     {uploadProgress[image.preview] !== undefined && uploadProgress[image.preview] < 100 && (
-                                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255,255,255,0.7)' }}>
+                                        <Box sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(255, 255, 255, 0.75)' }}>
                                             <CircularProgress variant="determinate" value={uploadProgress[image.preview]} size={40} />
                                         </Box>
                                     )}
@@ -482,9 +482,9 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
                                 </Box>
                             ))}
                             {formData.images.length < 5 && !isSubmitting && (
-                                <Box component="label" sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, border: '2px dashed #ccc', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}>
+                                <Box component="label" sx={{ width: { xs: 'calc(50% - 6px)', sm: 150 }, height: { xs: 120, sm: 150 }, border: '1.5px dashed', borderColor: 'grey.300', bgcolor: 'grey.50', borderRadius: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', cursor: 'pointer', '&:hover': { borderColor: 'primary.main', bgcolor: 'grey.100' } }}>
                                     <input type="file" autoComplete='off' hidden accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) { handleImageAdd(file); e.target.value = ''; } }} />
-                                    <AddPhotoAlternateIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: '#666', mb: 1 }} />
+                                    <AddPhotoAlternateIcon sx={{ fontSize: { xs: 30, sm: 40 }, color: 'text.secondary', mb: 1 }} />
                                     <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', fontSize: { xs: '0.75rem', sm: '0.875rem' } }} >Add Image</Typography>
                                     <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.6rem', sm: '0.75rem' } }}>(Max 5)</Typography>
                                 </Box>
@@ -495,7 +495,7 @@ export default function AddCourt({ open, onClose }: AddCourtProps) {
             </DialogContent>
             <DialogActions sx={{ p: { xs: 2, sm: 3 }, bgcolor: 'grey.50', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: { xs: 1, sm: 0 } }}>
                 <Button onClick={onClose} variant="outlined" disabled={isSubmitting}
-                    sx={{ mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' }, borderColor: 'primary.main', color: 'primary.main', '&:hover': { borderColor: 'primary.dark', bgcolor: 'rgba(30, 58, 138, 0.04)' } }}
+                    sx={{ mr: { sm: 1 }, width: { xs: '100%', sm: 'auto' } }}
                 >Cancel</Button>
                 <Button onClick={handleSubmit} variant="contained" disabled={isSubmitting}
                     sx={{ px: 4, width: { xs: '100%', sm: 'auto' }, bgcolor: 'primary.main', '&:hover': { bgcolor: 'primary.dark' } }}

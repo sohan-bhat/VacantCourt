@@ -1,8 +1,8 @@
 import React from 'react';
-import { Container, Typography, Box, Paper, Link, Alert } from '@mui/material';
+import { Container, Typography, Box, Link } from '@mui/material';
 import PageMeta from '../layout/PageMeta';
 
-const YOUR_CONTACT_EMAIL = 'officialvacantcourt@Vacant';
+const YOUR_CONTACT_EMAIL = 'officialvacantcourt@gmail.com';
 const YOUR_WEBSITE_URL = 'https://vacantcourt.netlify.app';
 
 const PrivacyPolicy: React.FC = () => {
@@ -12,10 +12,22 @@ const PrivacyPolicy: React.FC = () => {
                 title="Privacy Policy"
                 description="Review the VacantCourt Privacy Policy to understand how we collect, use, and protect your personal information when you use our services."
             />
-            <Box sx={{ bgcolor: 'grey.100', py: 5 }}>
-                <Container maxWidth="md">
-                    <Paper elevation={3} sx={{ p: { xs: 3, md: 5 } }}>
-                        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
+            <Box
+                sx={{
+                    bgcolor: 'background.paper',
+                    py: { xs: 6, md: 10 },
+                    '& h1': { fontSize: { xs: '2.25rem', md: '3rem' }, letterSpacing: '-0.035em', mb: 1 },
+                    '& h2': { fontSize: '1.25rem', fontWeight: 650, letterSpacing: '-0.015em', mt: 5, mb: 1.5 },
+                    '& h3': { fontSize: '1.05rem', fontWeight: 650, mt: 3 },
+                    '& p, & li': { color: 'text.secondary', lineHeight: 1.75 },
+                    '& li': { mb: 1 },
+                    '& strong': { color: 'text.primary', fontWeight: 600 },
+                    '& ul': { pl: 2.5 },
+                }}
+            >
+                <Container maxWidth="md" sx={{ maxWidth: { md: 760 } }}>
+                    <Box component="article">
+                        <Typography variant="h3" component="h1">
                             Privacy Policy
                         </Typography>
                         <Typography variant="body2" color="text.secondary" paragraph>
@@ -26,8 +38,8 @@ const PrivacyPolicy: React.FC = () => {
                             Welcome to VacantCourt ("we," "us," or "our"). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website, {YOUR_WEBSITE_URL}, and use our services.
                         </Typography>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 1. Information We Collect
                             </Typography>
                             <Typography paragraph>
@@ -51,8 +63,8 @@ const PrivacyPolicy: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 2. How We Use Your Information
                             </Typography>
                             <Typography paragraph>
@@ -69,8 +81,8 @@ const PrivacyPolicy: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 3. Disclosure of Your Information
                             </Typography>
                             <Typography paragraph>
@@ -91,8 +103,8 @@ const PrivacyPolicy: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 4. Security of Your Information
                             </Typography>
                             <Typography paragraph>
@@ -100,17 +112,17 @@ const PrivacyPolicy: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 5. Your Rights and Choices
                             </Typography>
                             <Typography paragraph>
-                                You have the right to review, update, or request deletion of your personal information. You may review and change your account information at any time by logging into your account settings (once this feature is available). You may also request to terminate your account and delete your data by contacting us at {YOUR_CONTACT_EMAIL}.
+                                You have the right to review, update, or request deletion of your personal information. You may review and change your account information at any time by logging into your account settings. You may also request to terminate your account and delete your data by contacting us at {YOUR_CONTACT_EMAIL}.
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 6. Children's Privacy
                             </Typography>
                             <Typography paragraph>
@@ -118,8 +130,8 @@ const PrivacyPolicy: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 7. Changes to This Privacy Policy
                             </Typography>
                             <Typography paragraph>
@@ -127,8 +139,8 @@ const PrivacyPolicy: React.FC = () => {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ my: 4 }}>
-                            <Typography variant="h5" component="h2" gutterBottom sx={{ fontWeight: 500 }}>
+                        <Box component="section">
+                            <Typography variant="h5" component="h2">
                                 8. Contact Us
                             </Typography>
                             <Typography paragraph>
@@ -137,7 +149,7 @@ const PrivacyPolicy: React.FC = () => {
                                 <Link href={`mailto:${YOUR_CONTACT_EMAIL}`}>{YOUR_CONTACT_EMAIL}</Link>
                             </Typography>
                         </Box>
-                    </Paper>
+                    </Box>
                 </Container>
             </Box>
         </>
