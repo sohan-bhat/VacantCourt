@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
 
 if (admin.apps.length === 0) {
   const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
@@ -15,7 +15,7 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
-exports.handler = async function(event, context) {
+export const handler = async function(event, context) {
 
   const authHeader = event.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

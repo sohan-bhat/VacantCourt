@@ -1,5 +1,5 @@
-const admin = require('firebase-admin');
-const emailjs = require('@emailjs/nodejs');
+import admin from 'firebase-admin';
+import emailjs from '@emailjs/nodejs';
 
 let firebaseInitialized = false;
 try {
@@ -24,7 +24,7 @@ try {
 
 const db = firebaseInitialized ? admin.firestore() : null;
 
-exports.handler = async function(event, context) {
+export const handler = async function(event, context) {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] Starting precise notification check...`);
 
