@@ -476,6 +476,11 @@ const theme = createTheme({
                 elevation: 0,
                 color: 'inherit',
             },
+            styleOverrides: {
+                root: {
+                    borderRadius: 0,
+                },
+            },
         },
     },
 });
